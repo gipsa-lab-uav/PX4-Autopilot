@@ -278,6 +278,10 @@ ControlAllocator::update_effectiveness_source()
 			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
 			break;
 
+		case EffectivenessSource::TILTROTOR:
+			tmp = new ActuatorEffectivenessTiltRotors(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;

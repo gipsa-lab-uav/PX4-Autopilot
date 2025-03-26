@@ -33,6 +33,7 @@ parameters:
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
                 15: Spacecraft 3D
+                16: Tiltrotor
             default: 0
 
         CA_METHOD:
@@ -46,6 +47,7 @@ parameters:
                 0: Pseudo-inverse with output clipping
                 1: Pseudo-inverse with sequential desaturation technique
                 2: Automatic
+                3: Tiltrotor
             default: 2
 
         # Motor parameters
@@ -412,6 +414,65 @@ parameters:
             num_instances: *max_num_tilts
             instance_start: 0
             default: 0
+        CA_SV_TL${i}_AX:
+            description:
+                short: Tilt axis of servo ${i}, X body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_tilts
+            instance_start: 0
+            min: -1
+            max: 1
+            default: 0.0
+        CA_SV_TL${i}_AY:
+            description:
+                short: Tilt axis of servo ${i}, Y body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_tilts
+            instance_start: 0
+            min: -1
+            max: 1
+            default: 1.0
+        CA_SV_TL${i}_AZ:
+            description:
+                short: Tilt axis of servo ${i}, Z body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_tilts
+            instance_start: 0
+            min: -1
+            max: 1
+            default: 0.0
+
+        CA_ROTOR${i}_TY:
+            description:
+                short: Tilt axis of rotor ${i}, Y body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_ROTOR${i}_TZ:
+            description:
+                short: Tilt axis of rotor ${i}, Z body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: -1.0
 
         # helicopter
         CA_SP0_COUNT:
@@ -1205,3 +1266,39 @@ mixer:
                         position: [ -1, 1, 0 ]
                       - name: 'Left Motor Back'
                         position: [ -1, -1, 0 ]
+            16: # TiltRotors
+                type: 'tiltrotors'
+                title: 'TiltRotors'
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                            advanced: true
+                  - actuator_type: 'servo'
+                    group_label: 'Tilt Servos'
+                    count: 'CA_SV_TL_COUNT'
+                    item_label_prefix: 'Tilt ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_TL${i}_MINA'
+                            label: "Angle at Min\nTilt"
+                          - name: 'CA_SV_TL${i}_MAXA'
+                            label: "Angle at Max\nTilt"

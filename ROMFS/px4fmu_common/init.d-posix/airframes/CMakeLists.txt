@@ -113,6 +113,9 @@ px4_add_romfs_files(
 	10042_sihsim_xvert
 	10043_sihsim_standard_vtol
 
+	14101_gz_tilt_rotor_h
+	14102_gz_tilt_rotor_x
+
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
