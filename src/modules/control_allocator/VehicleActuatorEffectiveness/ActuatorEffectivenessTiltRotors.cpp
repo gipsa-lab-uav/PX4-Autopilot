@@ -128,6 +128,8 @@ void ActuatorEffectivenessTiltRotors::updateParams()
 
 		param_get(_param_handles[i].tilt_min_angle, &_geometry.rotors[i].tilt_min_angle);
 		param_get(_param_handles[i].tilt_max_angle, &_geometry.rotors[i].tilt_max_angle);
+		_geometry.rotors[i].tilt_min_angle = math::radians(_geometry.rotors[i].tilt_min_angle);
+		_geometry.rotors[i].tilt_max_angle = math::radians(_geometry.rotors[i].tilt_max_angle);
 
 		PX4_INFO("Add TiltRotor %d.", i);
 	}
@@ -269,13 +271,19 @@ void ActuatorEffectivenessTiltRotors::updateSetpoint(const matrix::Vector<float,
 	int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
+	// static int k=0;
+	// bool display = !(k++ % 500);
+
+	// if(display)
+	// {
 	// PX4_INFO("control_sp : %f %f %f %f %f %f",
-	// 	(double)control_sp(0),
-	// 	(double)control_sp(1),
-	// 	(double)control_sp(2),
-	// 	(double)control_sp(3),
-	// 	(double)control_sp(4),
-	// 	(double)control_sp(5));
+	//  	(double)control_sp(0),
+	//  	(double)control_sp(1),
+	//  	(double)control_sp(2),
+	//  	(double)control_sp(3),
+	//  	(double)control_sp(4),
+	//  	(double)control_sp(5));
+	// }
 
 	int num_rotors = _geometry.num_rotors;
 	for(int i=0; i<num_rotors; i++)
@@ -285,17 +293,44 @@ void ActuatorEffectivenessTiltRotors::updateSetpoint(const matrix::Vector<float,
 		float tct = actuator_sp(id_mot);
 		float tst = actuator_sp(id_sv);
 
-		// PX4_INFO("tct/tst : %f %f", (double)tct, (double)tst);
 
 		float rotor_sp = hypotf(tst, tct);
-		float tilt = atan2f(tst, tct+0.01f) * 180.f/M_PI_F;
-		// PX4_INFO("Thrust_Tilt_%d : %f %f", i, (double)rotor_sp, (double)tilt);
-		float sv_sp = actuator_min(id_sv) + (actuator_max(id_sv) - actuator_min(id_sv))
-		                * (tilt - _geometry.rotors[i].tilt_min_angle)/(_geometry.rotors[i].tilt_max_angle-_geometry.rotors[i].tilt_min_angle);
+		float tilt = atan2f(tst, tct + 0.05f);
+
+		 // float sv_sp = actuator_min(id_sv) + (actuator_max(id_sv) - actuator_min(id_sv))
+		//                 * (tilt - _geometry.rotors[i].tilt_min_angle)/(_geometry.rotors[i].tilt_max_angle-_geometry.rotors[i].tilt_min_angle);
+
+		//float sv_sp = math::lerp((float)actuator_min(id_sv), (float)actuator_max(id_sv), (float)(tilt-_geometry.rotors[i].tilt_min_angle)/(_geometry.rotors[i].tilt_max_angle-_geometry.rotors[i].tilt_min_angle));
+		float sv_sp = math::lerp(-1.f, 1.f, (float)(tilt-_geometry.rotors[i].tilt_min_angle)/(_geometry.rotors[i].tilt_max_angle-_geometry.rotors[i].tilt_min_angle));
 
 		actuator_sp(id_mot) = rotor_sp;
 		actuator_sp(id_sv) = sv_sp;
+
+		// if(display)
+		// {
+		// 	PX4_INFO("tct/tst [%d] : %f %f", i, (double)tct, (double)tst);
+		// 	PX4_INFO("tilt svp_sp [%d] : %f %f", i, (double)tilt, (double)sv_sp);
+
+		// }
+
 	}
 
+	// {
+	// PX4_INFO("control_sp : %f %f %f %f %f %f",
+	//  	(double)control_sp(0),
+	//  	(double)control_sp(1),
+	//  	(double)control_sp(2),
+	//  	(double)control_sp(3),
+	//  	(double)control_sp(4),
+	//  	(double)control_sp(5));
+
+	// PX4_INFO("Min max sv : %f %f", (double)_geometry.rotors[3].tilt_min_angle, (double)_geometry.rotors[3].tilt_max_angle);
+	//  PX4_INFO("Servos %d %f %f %f %f",
+	// 	num_rotors,
+	// 	(double) actuator_sp(_actuator_start_index + num_rotors),
+	// 	(double) actuator_sp(_actuator_start_index + num_rotors+1),
+	// 	(double) actuator_sp(_actuator_start_index + num_rotors+2),
+	// 	(double) actuator_sp(_actuator_start_index + num_rotors+3));
+	// }
 
 }

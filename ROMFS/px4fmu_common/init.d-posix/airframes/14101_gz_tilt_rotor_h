@@ -113,13 +113,21 @@ param set-default SIM_GZ_SV_FUNC2 202
 param set-default SIM_GZ_SV_FUNC3 203
 param set-default SIM_GZ_SV_FUNC4 204
 
+param set-default SIM_GZ_SV_MAXA1 90
+param set-default SIM_GZ_SV_MINA1 -90
+param set-default SIM_GZ_SV_MAXA2 90
+param set-default SIM_GZ_SV_MINA2 -90
+param set-default SIM_GZ_SV_MAXA3 90
+param set-default SIM_GZ_SV_MINA3 -90
+param set-default SIM_GZ_SV_MAXA4 90
+param set-default SIM_GZ_SV_MINA4 -90
 
 
 param set-default MPC_THR_HOVER 0.40
 
 param set-default MC_ROLLRATE_K 0.5
 param set-default MC_PITCHRATE_K 0.5
-param set-default MC_YAWRATE_K 0.4
+param set-default MC_YAWRATE_K 0.1
 
 #param set-default NAV_DLL_ACT 2
 
