@@ -16,6 +16,7 @@ publications:
 
   - topic: /fmu/out/battery_status
     type: px4_msgs::msg::BatteryStatus
+    rate: 5
 
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
@@ -81,9 +82,11 @@ publications:
     type: px4_msgs::msg::VehicleRatesSetpoint
     rate: 100
 
-  - topic: /fmu/out/battery_status
-    type: px4_msgs::msg::BatteryStatus
-    rate: 5
+  - topic: /fmu/out/vtol_vehicle_status
+    type: px4_msgs::msg::VtolVehicleStatus
+
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
 
 # Create uORB::Publication
 subscriptions:
