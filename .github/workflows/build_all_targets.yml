@@ -9,6 +9,7 @@ on:
   push:
     tags:
       - 'v*'
+      - 'tirrex_v*'
     branches:
       - 'main'
       - 'stable'
