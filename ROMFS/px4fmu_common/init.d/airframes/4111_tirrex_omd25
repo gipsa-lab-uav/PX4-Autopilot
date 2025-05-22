@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# @name Tirrex OMD25
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Amaury Negre <amaury.negre@gipsa-lab.fr>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default BAT1_N_CELLS 3
+param set-default BAT1_V_DIV 11.2
+param set-default BAT1_A_PER_V 59.5
+
+param set-default COM_FLTMODE1 8
+param set-default COM_FLTMODE4 1
+param set-default COM_FLTMODE6 2
+param set-default DSHOT_BIDIR_EN 1
+
+param set-default EKF2_EV_CTRL 11
+param set-default EKF2_HGT_REF 3
+
+param set-default GPS_1_CONFIG 0
+
+param set-default MAN_ARM_GESTURE 0
+
+param set-default MC_ROLLRATE_K 0.2
+param set-default MC_PITCHRATE_K 0.2
+param set-default MC_YAWRATE_K 0.2
+
+param set-default MC_ROLLRATE_P 0.18
+param set-default MC_PITCHRATE_P 0.18
+param set-default MC_ROLLRATE_I 0.15
+param set-default MC_PITCHRATE_I 0.15
+
+param set-default PWM_MAIN_FUNC1 104
+param set-default PWM_MAIN_FUNC2 101
+param set-default PWM_MAIN_FUNC3 102
+param set-default PWM_MAIN_FUNC4 103
+
+param set-default PWM_MAIN_TIM0 -3
+param set-default PWM_MAIN_TIM1 -3
+
+param set-default RC_CHAN_CNT 18
+param set-default RC_INPUT_PROTO 2
+param set-default RC_MAP_ARM_SW 5
+param set-default RC_MAP_FLTMODE 6
+param set-default RC_MAP_KILL_SW 7
+param set-default RC_MAP_OFFB_SW 8
+param set-default RC_MAP_PITCH 3
+param set-default RC_MAP_ROLL 2
+param set-default RC_MAP_THROTTLE 1
+param set-default RC_MAP_YAW 4
+
+param set-default SER_TEL1_BAUD 921600
+param set-default MAV_0_RATE 0
+
+param set-default SYS_HAS_MAG 0
+param set-default SYS_HAS_GPS 0
+
+param set-default UXRCE_DDS_CFG 102
+
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.04
+param set-default CA_ROTOR0_PY 0.04
+param set-default CA_ROTOR1_PX -0.04
+param set-default CA_ROTOR1_PY -0.04
+param set-default CA_ROTOR2_PX 0.04
+param set-default CA_ROTOR2_PY -0.04
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.04
+param set-default CA_ROTOR3_PY 0.04
+param set-default CA_ROTOR3_KM -0.05
+
