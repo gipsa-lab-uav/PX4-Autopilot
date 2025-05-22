@@ -14,8 +14,8 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default BAT1_N_CELLS 3
-param set-default BAT1_V_DIV 11.2
-param set-default BAT1_A_PER_V 59.5
+#param set-default BAT1_V_DIV 11.2
+#param set-default BAT1_A_PER_V 59.5
 
 param set-default COM_FLTMODE1 8
 param set-default COM_FLTMODE4 1
