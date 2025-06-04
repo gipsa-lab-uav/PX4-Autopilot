@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Tirrex OMD25
+# @name TIRREX OMD25
 #
 # @type Quadrotor x
 # @class Copter
@@ -20,7 +20,7 @@ param set-default BAT1_N_CELLS 3
 param set-default COM_FLTMODE1 8
 param set-default COM_FLTMODE4 1
 param set-default COM_FLTMODE6 2
-param set-default DSHOT_BIDIR_EN 1
+#param set-default DSHOT_BIDIR_EN 1
 
 param set-default EKF2_EV_CTRL 11
 param set-default EKF2_HGT_REF 3
