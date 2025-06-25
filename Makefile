@@ -233,6 +233,7 @@ $(CONFIG_TARGETS_DEFAULT):
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+all_tirrex_targets: px4_fmu-v5 px4_fmu-v6x px4_fmu-v6c holybro_durandal-v1 holybro_kakuteh7 holybro_kakuteh7mini holybro_kakuteh7v2
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
@@ -292,7 +293,7 @@ check_%:
 all_variants_%:
 	@echo 'Building all $(subst all_variants_,,$@) variants:'  $(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS))
 	@echo
-	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
+	$(foreach a,$(filter $(subst all_varALL_TIRREX_TARGETSiants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
 
 uorb_graphs:
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --merge-depends --file Tools/uorb_graph/graph_full
