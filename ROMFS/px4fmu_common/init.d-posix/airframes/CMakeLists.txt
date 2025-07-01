@@ -112,6 +112,7 @@ px4_add_romfs_files(
 	10041_sihsim_airplane
 	10042_sihsim_xvert
 	10043_sihsim_standard_vtol
+	10044_sihsim_hex
 
 	14101_gz_tilt_rotor_h
 	14102_gz_tilt_rotor_x
@@ -119,7 +120,8 @@ px4_add_romfs_files(
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
-	71001_gazebo-classic_spacecraft_dart
+	50000_gz_rover_differential
+
 	71002_gz_spacecraft_2d
 
 	# [22000, 22999] Reserve for custom models
