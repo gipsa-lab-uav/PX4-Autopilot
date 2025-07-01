@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+# @name TiltRotor X
+#
+# @type TiltRotor
+# @class Copter
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MAV_TYPE 16
+
+param set-default CA_AIRFRAME 16
+param set-default CA_ROTOR_COUNT 4
+#param set-default CA_SV_CS_COUNT 4
+
+param set-default CA_ROTOR0_PX 0.12
+param set-default CA_ROTOR0_PY 0.12
+param set-default CA_ROTOR0_KM  0.05
+param set-default CA_ROTOR0_CT  6.5
+
+param set-default CA_ROTOR0_AX 0.
+param set-default CA_ROTOR0_AY 0.
+param set-default CA_ROTOR0_AZ -1.
+
+param set-default CA_ROTOR1_PX -0.12
+param set-default CA_ROTOR1_PY -0.12
+param set-default CA_ROTOR1_KM  0.05
+param set-default CA_ROTOR1_CT  6.5
+
+param set-default CA_ROTOR1_AX 0.
+param set-default CA_ROTOR1_AY 0.
+param set-default CA_ROTOR1_AZ -1.
+
+param set-default CA_ROTOR2_PX 0.12
+param set-default CA_ROTOR2_PY -0.12
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR2_CT  6.5
+
+param set-default CA_ROTOR2_AX 0.
+param set-default CA_ROTOR2_AY 0.
+param set-default CA_ROTOR2_AZ -1.
+
+param set-default CA_ROTOR3_PX -0.12
+param set-default CA_ROTOR3_PY 0.12
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR3_CT  6.5
+
+param set-default CA_ROTOR3_AX 0.
+param set-default CA_ROTOR3_AY 0.
+param set-default CA_ROTOR3_AZ -1.
+
+param set-default CA_ROTOR0_TILT 1
+param set-default CA_ROTOR1_TILT 2
+param set-default CA_ROTOR2_TILT 3
+param set-default CA_ROTOR3_TILT 4
+
+param set-default CA_SV_TL_COUNT 4
+param set-default CA_SV_TL0_CT 0
+param set-default CA_SV_TL1_CT 0
+param set-default CA_SV_TL2_CT 0
+param set-default CA_SV_TL3_CT 0
+
+param set-default CA_SV_TL0_MINA -90
+param set-default CA_SV_TL0_MAXA 90
+param set-default CA_SV_TL0_AX 1.
+param set-default CA_SV_TL0_AY 1.
+param set-default CA_SV_TL0_AZ 0.
+
+param set-default CA_SV_TL1_MINA -90
+param set-default CA_SV_TL1_MAXA 90
+param set-default CA_SV_TL1_AX -1.
+param set-default CA_SV_TL1_AY -1.
+param set-default CA_SV_TL1_AZ 0.
+
+param set-default CA_SV_TL2_MINA -90
+param set-default CA_SV_TL2_MAXA 90
+param set-default CA_SV_TL2_AX 1.
+param set-default CA_SV_TL2_AY -1.
+param set-default CA_SV_TL2_AZ 0.
+
+param set-default CA_SV_TL3_MINA -90
+param set-default CA_SV_TL3_MAXA 90
+param set-default CA_SV_TL3_AX -1.
+param set-default CA_SV_TL3_AY 1.
+param set-default CA_SV_TL3_AZ 0.
+
+param set-default MPC_THR_HOVER 0.40
+
+param set-default MC_ROLLRATE_K 1.4
+param set-default MC_PITCHRATE_K 1.4
+param set-default MC_YAWRATE_K 0.1
+
+
+#param set-default NAV_DLL_ACT 2
+
+param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_EV_CTRL 11
+param set-default EKF2_HGT_REF 3
