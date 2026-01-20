@@ -8,9 +8,13 @@ on:
       - 'docs/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -44,6 +48,7 @@ jobs:
         run: |
           git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk
           cd _emscripten_sdk
+          git checkout 4.0.15
           ./emsdk install latest
           ./emsdk activate latest
 

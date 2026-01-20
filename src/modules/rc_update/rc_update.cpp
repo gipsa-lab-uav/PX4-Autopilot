@@ -87,10 +87,6 @@ RCUpdate::RCUpdate() :
 		/* channel reverse */
 		snprintf(nbuf, sizeof(nbuf), "RC%d_REV", i + 1);
 		_parameter_handles.rev[i] = param_find(nbuf);
-
-		/* channel deadzone */
-		snprintf(nbuf, sizeof(nbuf), "RC%d_DZ", i + 1);
-		_parameter_handles.dz[i] = param_find(nbuf);
 	}
 
 	// RC to parameter mapping for changing parameters with RC
@@ -145,10 +141,6 @@ void RCUpdate::updateParams()
 		float rev = 0.f;
 		param_get(_parameter_handles.rev[i], &rev);
 		_parameters.rev[i] = (rev < 0.f);
-
-		float dz = 0.f;
-		param_get(_parameter_handles.dz[i], &dz);
-		_parameters.dz[i] = dz;
 	}
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -207,6 +199,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_TERMINATION] = _param_rc_map_term_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
@@ -448,12 +441,9 @@ void RCUpdate::Run()
 			const float min = _parameters.min[i];
 			const float trim = _parameters.trim[i];
 			const float max = _parameters.max[i];
-			const float dz = _parameters.dz[i];
 
 			// piecewise linear function to apply RC calibration
-			_rc.channels[i] = math::interpolateNXY(value,
-			{min, trim - dz, trim + dz, max},
-			{-1.f, 0.f, 0.f, 1.f});
+			_rc.channels[i] = math::interpolateNXY(value, {min, trim, max}, {-1.f, 0.f, 1.f});
 
 			if (_parameters.rev[i]) {
 				_rc.channels[i] = -_rc.channels[i];
@@ -631,6 +621,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.loiter_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_LOITER, _param_rc_loiter_th.get());
 	switches.offboard_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD, _param_rc_offb_th.get());
 	switches.kill_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
+	switches.termination_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TERMINATION, .75f);
 	switches.arm_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ARMSWITCH, _param_rc_armswitch_th.get());
 	switches.transition_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
 	switches.gear_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_GEAR, _param_rc_gear_th.get());
@@ -723,11 +714,11 @@ int RCUpdate::print_status()
 	PX4_INFO_RAW("Running\n");
 
 	if (_channel_count_max > 0) {
-		PX4_INFO_RAW(" #  MIN  MAX TRIM  DZ REV\n");
+		PX4_INFO_RAW(" #  MIN  MAX TRIM REV\n");
 
 		for (int i = 0; i < _channel_count_max; i++) {
-			PX4_INFO_RAW("%2d %4d %4d %4d %3d %3d\n", i, _parameters.min[i], _parameters.max[i], _parameters.trim[i],
-				     _parameters.dz[i], _parameters.rev[i]);
+			PX4_INFO_RAW("%2d %4d %4d %4d %3d\n",
+				     i, _parameters.min[i], _parameters.max[i], _parameters.trim[i], _parameters.rev[i]);
 		}
 	}
 
