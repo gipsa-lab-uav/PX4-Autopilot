@@ -65,6 +65,7 @@
 
 static int board_reset_enter_bootloader()
 {
+<<<<<<< HEAD
 #ifdef BOARD_HAS_TEENSY_BOOTLOADER
 	asm("BKPT #251"); /* Enter Teensy MKL02 bootloader */
 #else
@@ -72,6 +73,11 @@ static int board_reset_enter_bootloader()
 	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
 	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
 #endif
+=======
+	uint32_t regvalue = BOOT_RTC_SIGNATURE;
+	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
+	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
+>>>>>>> PX4/release/1.17
 	return OK;
 }
 
@@ -82,7 +88,13 @@ int board_reset(int status)
 	}
 
 	else if (status == REBOOT_TO_ISP) {
+<<<<<<< HEAD
 #ifdef BOARD_HAS_ISP_BOOTLOADER
+=======
+#ifdef BOARD_HAS_TEENSY_BOOTLOADER
+		asm("BKPT #251"); /* Enter Teensy MKL02 bootloader */
+#elif defined(BOARD_HAS_ISP_BOOTLOADER)
+>>>>>>> PX4/release/1.17
 		uint32_t arg = 0xeb100000;
 		ROM_API_Init();
 		ROM_RunBootloader(&arg);

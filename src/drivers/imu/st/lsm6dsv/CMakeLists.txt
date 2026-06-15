@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,25 +32,16 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__mavlink__mavlink_tests
-	MAIN mavlink_tests
-	STACK_MAIN 8192
-	INCLUDES
-		${MAVLINK_LIBRARY_DIR}
-		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
+	MODULE drivers__imu__st__lsm6dsv
+	MAIN lsm6dsv
 	COMPILE_FLAGS
-		-DMAVLINK_FTP_UNIT_TEST
-		#-DMAVLINK_FTP_DEBUG
-		-DMavlinkStream=MavlinkStreamTest
-		-DMavlinkFTP=MavlinkFTPTest
-		-Wno-cast-align # TODO: fix and enable
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-		-Wno-double-promotion # The fix has been proposed as PR upstream (2020-03-08)
 	SRCS
-		mavlink_tests.cpp
-		mavlink_ftp_test.cpp
-		../mavlink_stream.cpp
-		../mavlink_ftp.cpp
+		LSM6DSV.cpp
+		LSM6DSV.hpp
+		lsm6dsv_main.cpp
+		ST_LSM6DSV_Registers.hpp
 	DEPENDS
-		mavlink_c_generate
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)

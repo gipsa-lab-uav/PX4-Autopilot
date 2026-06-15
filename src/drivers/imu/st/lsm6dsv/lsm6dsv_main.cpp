@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,17 +31,57 @@
  *
  ****************************************************************************/
 
-/**
- * @file mavlink_tests.cpp
- */
+#include "LSM6DSV.hpp"
 
-#include <systemlib/err.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-#include "mavlink_ftp_test.h"
-
-extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
-
-int mavlink_tests_main(int argc, char *argv[])
+void LSM6DSV::print_usage()
 {
-	return mavlink_ftp_test() ? 0 : -1;
+	PRINT_MODULE_USAGE_NAME("lsm6dsv", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" int lsm6dsv_main(int argc, char *argv[])
+{
+	int ch;
+	using ThisDriver = LSM6DSV;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = SPI_SPEED;
+
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ST_LSM6DSV);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
