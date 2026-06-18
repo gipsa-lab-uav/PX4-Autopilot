@@ -41,6 +41,9 @@
 
 #include "ControlAllocation.hpp"
 
+#include <drivers/drv_hrt.h>
+#include <cstring>
+
 ControlAllocation::ControlAllocation()
 {
 	_control_allocation_scale.setAll(1.f);
@@ -61,6 +64,33 @@ ControlAllocation::setEffectivenessMatrix(
 	clipActuatorSetpoint(_actuator_trim);
 	_num_actuators = num_actuators;
 	_control_trim = _effectiveness * linearization_point_clipped;
+	publishDebugArray();
+}
+
+void
+ControlAllocation::publishDebugArray()
+{
+	debug_array_s debug_array{};
+	debug_array.timestamp = hrt_absolute_time();
+	debug_array.id = 45;
+	std::strncpy(debug_array.name, "allocin", sizeof(debug_array.name));
+
+	int idx = 0;
+	const int debug_actuators = _num_actuators < 4 ? _num_actuators : 4;
+
+	// Layout per actuator for first 4 actuators:
+	// [roll, pitch, yaw, thrust_x, thrust_y, thrust_z] * 1e9
+	for (int actuator = 0; actuator < debug_actuators; ++actuator) {
+		for (int axis = 0; axis < NUM_AXES; ++axis) {
+			debug_array.data[idx++] = _effectiveness(axis, actuator) * 1e9f;
+		}
+	}
+
+	if (idx < debug_array_s::ARRAY_SIZE) {
+		debug_array.data[idx++] = (float)_num_actuators;
+	}
+
+	_debug_array_pub.publish(debug_array);
 }
 
 void

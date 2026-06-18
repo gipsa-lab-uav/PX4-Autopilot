@@ -44,8 +44,10 @@
 #include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/debug_array.h>
 
 class ActuatorEffectivenessTilts;
 
@@ -132,6 +134,7 @@ public:
 
 private:
 	void updateParams() override;
+	void publishDebugArray();
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
 
@@ -149,6 +152,7 @@ private:
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 
 	Geometry _geometry{};
+	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count

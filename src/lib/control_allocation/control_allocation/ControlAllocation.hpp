@@ -70,6 +70,8 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/debug_array.h>
 
 #include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 
@@ -194,6 +196,9 @@ public:
 	void setSlewRateLimit(const ActuatorVector &slew_rate_limit)
 	{ _actuator_slew_rate_limit = slew_rate_limit; }
 
+	virtual void setRpmMax(const ActuatorVector &rpm_max) {}
+	void setTimestampSample(uint64_t timestamp_sample) { _timestamp_sample = timestamp_sample; }
+
 	/**
 	 * Apply slew rate to current actuator setpoint
 	 */
@@ -229,6 +234,7 @@ public:
 	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
 
 protected:
+	void publishDebugArray();
 	friend class ControlAllocator; // for _actuator_sp
 
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
@@ -241,7 +247,9 @@ protected:
 	ActuatorVector _actuator_sp;  	///< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
+	uint64_t _timestamp_sample{0};
 	int _num_actuators{0};
 	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
 	bool _had_actuator_failure{false};
+	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
 };

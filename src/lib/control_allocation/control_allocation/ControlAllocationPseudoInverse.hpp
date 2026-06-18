@@ -72,7 +72,7 @@ protected:
 	void updatePseudoInverse();
 
 private:
-	void normalizeControlAllocationMatrix();
+	void normalizeControlAllocationMatrix(bool print_debug = false);
 	void updateControlAllocationMatrixScale();
 	bool _normalization_needs_update{false};
 };

@@ -237,7 +237,9 @@ set(msg_files
 	VehicleOpticalFlow.msg
 	VehicleOpticalFlowVel.msg
 	VehicleRoi.msg
+	VehicleThrustNewtonSetpoint.msg
 	VehicleThrustSetpoint.msg
+	VehicleTorqueNewtonSetpoint.msg
 	VehicleTorqueSetpoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg

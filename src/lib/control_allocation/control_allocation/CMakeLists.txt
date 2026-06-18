@@ -36,6 +36,8 @@ px4_add_library(ControlAllocation
 	ControlAllocation.hpp
 	ControlAllocationPseudoInverse.cpp
 	ControlAllocationPseudoInverse.hpp
+	ControlAllocationPhysicsAccuratePseudoInverse.cpp
+	ControlAllocationPhysicsAccuratePseudoInverse.hpp
 	ControlAllocationSequentialDesaturation.cpp
 	ControlAllocationSequentialDesaturation.hpp
 )

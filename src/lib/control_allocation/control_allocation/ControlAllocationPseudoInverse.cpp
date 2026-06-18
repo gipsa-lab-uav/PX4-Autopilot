@@ -41,6 +41,8 @@
 
 #include "ControlAllocationPseudoInverse.hpp"
 
+#include <px4_platform_common/log.h>
+
 void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
@@ -63,14 +65,16 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_mix_update_needed) {
 		matrix::geninv(_effectiveness, _mix);
+		bool print_debug = false;
 
 		if (!_metric_allocation) {
 			if (_normalization_needs_update && !_had_actuator_failure) {
 				updateControlAllocationMatrixScale();
 				_normalization_needs_update = false;
+				print_debug = true;
 			}
 
-			normalizeControlAllocationMatrix();
+			normalizeControlAllocationMatrix(print_debug);
 		}
 
 		_mix_update_needed = false;
@@ -148,8 +152,23 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 }
 
 void
-ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
+ControlAllocationPseudoInverse::normalizeControlAllocationMatrix(bool print_debug)
 {
+	if (print_debug) {
+		PX4_INFO("ControlAllocationPseudoInverse: _mix before normalization");
+
+		for (int i = 0; i < _num_actuators; i++) {
+			PX4_INFO("actuator %d: % .6f % .6f % .6f % .6f % .6f % .6f",
+				 i,
+				 (double)_mix(i, 0),
+				 (double)_mix(i, 1),
+				 (double)_mix(i, 2),
+				 (double)_mix(i, 3),
+				 (double)_mix(i, 4),
+				 (double)_mix(i, 5));
+		}
+	}
+
 	if (_control_allocation_scale(0) > FLT_EPSILON) {
 		_mix.col(0) /= _control_allocation_scale(0);
 		_mix.col(1) /= _control_allocation_scale(1);
@@ -172,6 +191,21 @@ ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 			if (fabsf(_mix(i, j)) < 1e-3f) {
 				_mix(i, j) = 0.f;
 			}
+		}
+	}
+
+	if (print_debug) {
+		PX4_INFO("ControlAllocationPseudoInverse: _mix after normalization");
+
+		for (int i = 0; i < _num_actuators; i++) {
+			PX4_INFO("actuator %d: % .6f % .6f % .6f % .6f % .6f % .6f",
+				 i,
+				 (double)_mix(i, 0),
+				 (double)_mix(i, 1),
+				 (double)_mix(i, 2),
+				 (double)_mix(i, 3),
+				 (double)_mix(i, 4),
+				 (double)_mix(i, 5));
 		}
 	}
 }

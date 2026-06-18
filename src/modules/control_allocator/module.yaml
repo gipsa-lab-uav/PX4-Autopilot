@@ -47,7 +47,8 @@ parameters:
                 0: Pseudo-inverse with output clipping
                 1: Pseudo-inverse with sequential desaturation technique
                 2: Automatic
-                3: Tiltrotor
+                3: Physics accurate pseudo-inverse
+
             default: 2
 
         # Motor parameters
@@ -195,36 +196,66 @@ parameters:
             max: 100
             default: -1.0
 
-        CA_ROTOR${i}_CT:
+        CA_ROTOR${i}_RPM:
             description:
-                short: Thrust coefficient of rotor ${i}
+                short: Closed loop ESC max RPM of rotor ${i}
                 long: |
-                  The thrust coefficient if defined as Thrust = CT * u^2,
-                  where u (with value between actuator minimum and maximum)
-                  is the output signal sent to the motor controller.
+                  Used for physics accurate allocator with closed loop ESCs.
             type: float
+            unit: rpm
             decimal: 1
             increment: 1
             num_instances: *max_num_mc_motors
             min: 0
-            max: 100
-            default: 6.5
+            max: 50000
+            default: 22000
+
+        CA_ROTOR${i}_CT:
+            description:
+                short: Thrust coefficient of rotor ${i}
+                long: |
+                  The thrust coefficient defined by Thrust = CT * RPM^2.
+                  Enter CT in N/(krpm)^2, where krpm means 1000 RPM.
+                  PX4 keeps this scaling internally, so the physics-accurate allocator
+                  works with motor speed expressed in krpm.
+
+                  If your identified coefficient is in N/(rad/s)^2, convert it with:
+                  CT_krpm = CT_rad * (1000 * 2 * pi / 60)^2.
+            type: float
+            decimal: 7
+            increment: 0.0000001
+            num_instances: *max_num_mc_motors
+            min: 0
+            max: 10
+            default: 0.0046756
 
         CA_ROTOR${i}_KM:
             description:
                 short: Moment coefficient of rotor ${i}
                 long: |
-                  The moment coefficient if defined as Torque = KM * Thrust.
+                  Rotor reaction torque coefficient used by the control allocator model.
+                  The reaction torque is defined as Torque = KM * RPM^2.
+
+                  Enter KM in N.m/(krpm)^2, where krpm means 1000 RPM.
+                  PX4 keeps this scaling internally, so the physics-based rotor
+                  effectiveness model works with motor speed expressed in krpm.
+
+                  If your identified coefficient is in N.m/(rad/s)^2, convert it with:
+                  KM_krpm = KM_rad * (1000 * 2 * pi / 60)^2.
 
                   Use a positive value for a rotor with CCW rotation.
                   Use a negative value for a rotor with CW rotation.
+
+                  Existing saved CA_ROTOR*_KM values based on the older ratio model
+                  must be updated manually after flashing new firmware.
             type: float
-            decimal: 3
-            increment: 0.01
+            decimal: 8
+            increment: 0.00000001
             num_instances: *max_num_mc_motors
             min: -1
             max: 1
-            default: 0.05
+            default: 0.00023153
+
         CA_ROTOR${i}_TILT:
             description:
                 short: Rotor ${i} tilt assignment
@@ -856,6 +887,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                           - name: 'CA_ROTOR${i}_AX'
                             label: 'Axis X'
                             function: 'axisx'
@@ -868,6 +901,7 @@ mixer:
                             label: 'Axis Z'
                             function: 'axisz'
                             advanced: true
+
 
             1: # Fixed Wing
                 title: 'Fixed Wing'
@@ -918,6 +952,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                           - name: 'CA_ROTOR${i}_AX'
                             label: 'Axis X'
                             function: 'axisx'
@@ -975,6 +1011,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                   - actuator_type: 'servo'
                     group_label: 'Control Surfaces'
                     count: 'CA_SV_CS_COUNT'
@@ -1036,6 +1074,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                   - actuator_type: 'servo'
                     group_label: 'Control Surfaces'
                     count: 'CA_SV_CS_COUNT'
@@ -1110,6 +1150,8 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_KM'
                             label: "Moment\nCoefficient"
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
 
             8: # Multirotor with Tilt
                 title: 'Multirotor with Tilt'
@@ -1124,6 +1166,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                           - name: 'CA_ROTOR${i}_TILT'
                             label: 'Tilted by'
                   - actuator_type: 'servo'
@@ -1163,6 +1207,9 @@ mixer:
                             label: "Thrust\nCoefficient"
                           - name: 'CA_ROTOR${i}_KM'
                             label: "Moment\nCoefficient"
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
+
                   - actuator_type: 'servo'
                     group_label: 'Torque'
                     count: 'CA_SV_CS_COUNT'
@@ -1299,6 +1346,8 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_CT'
                             label: "Thrust\nCoefficient"
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
             15: # Spacecraft 3D
                 actuators:
                   - actuator_type: 'motor'
@@ -1319,6 +1368,8 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_CT'
                             label: "Thrust\nCoefficient"
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
             16: # TiltRotors
                 type: 'tiltrotors'
                 title: 'TiltRotors'
@@ -1333,6 +1384,8 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_RPM'
+                            label: "Max\nRPM"
                           - name: 'CA_ROTOR${i}_AX'
                             label: 'Axis X'
                             function: 'axisx'
@@ -1355,4 +1408,3 @@ mixer:
                             label: "Angle at Min\nTilt"
                           - name: 'CA_SV_TL${i}_MAXA'
                             label: "Angle at Max\nTilt"
-
