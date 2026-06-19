@@ -58,6 +58,7 @@ public:
 	ControlAllocationPhysicsAccuratePseudoInverse()
 	{
 		_rpm_max.setAll(22.f);
+		_rpm_min.setAll(0.f);
 	}
 
 	virtual ~ControlAllocationPhysicsAccuratePseudoInverse() = default;
@@ -68,6 +69,7 @@ public:
 				    bool update_normalization_scale) override;
 	void setMetricAllocation(bool metric_allocation) { _metric_allocation = metric_allocation; }
 	void setRpmMax(const ActuatorVector &rpm_max) override;
+	void setRpmMin(const ActuatorVector &rpm_min) override;
 
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
@@ -82,6 +84,12 @@ protected:
 	void updatePseudoInverse();
 
 private:
+	float rpmMin(int actuator) const;
+	float rpmMax(int actuator) const;
+	float rpmSpan(int actuator) const;
+	float actuatorCommandToOmega(int actuator, float actuator_command) const;
+	float actuatorCommandToOmegaSq(int actuator, float actuator_command) const;
+	float omegaToActuatorCommand(int actuator, float omega) const;
 	void normaliseActuatorSp();
 	matrix::Vector<float, NUM_AXES> normalisedControlToPhysical(const matrix::Vector<float, NUM_AXES> &control) const;
 	ActuatorVector actuatorSetpointToPhysical(const ActuatorVector &actuator) const;
@@ -91,6 +99,7 @@ private:
 	void updateControlAllocationMatrixScale();
 	bool _normalization_needs_update{false};
 	ActuatorVector _rpm_max;
+	ActuatorVector _rpm_min;
 	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
 	uORB::Publication<vehicle_thrust_newton_setpoint_s> _vehicle_thrust_newton_setpoint_pub{ORB_ID(vehicle_thrust_newton_setpoint)};
 	uORB::Publication<vehicle_torque_newton_setpoint_s> _vehicle_torque_newton_setpoint_pub{ORB_ID(vehicle_torque_newton_setpoint)};

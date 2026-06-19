@@ -210,6 +210,24 @@ parameters:
             max: 50000
             default: 22000
 
+        CA_ROTOR${i}_MRPM:
+            description:
+                short: Closed loop ESC min RPM of rotor ${i}
+                long: |
+                  Used only by 'Physics accurate pseudo-inverse'.
+
+                  This is the rotor speed reached when the allocator outputs 0
+                  for that motor, assuming the ESC maps the incoming command
+                  linearly to the speed interval [MRPM, RPM].
+            type: float
+            unit: rpm
+            decimal: 1
+            increment: 1
+            num_instances: *max_num_mc_motors
+            min: 0
+            max: 50000
+            default: 0
+
         CA_ROTOR${i}_CT:
             description:
                 short: Thrust coefficient of rotor ${i}

@@ -197,6 +197,7 @@ public:
 	{ _actuator_slew_rate_limit = slew_rate_limit; }
 
 	virtual void setRpmMax(const ActuatorVector &rpm_max) {}
+	virtual void setRpmMin(const ActuatorVector &rpm_min) {}
 	void setTimestampSample(uint64_t timestamp_sample) { _timestamp_sample = timestamp_sample; }
 
 	/**

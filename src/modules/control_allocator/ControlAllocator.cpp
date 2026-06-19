@@ -79,6 +79,12 @@ ControlAllocator::ControlAllocator() :
 		_param_handles.rotor_rpm_max[i] = param_find(buffer);
 	}
 
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		char buffer[19];
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_MRPM", i);
+		_param_handles.rotor_rpm_min[i] = param_find(buffer);
+	}
+
 
 	parameters_updated();
 }
@@ -126,6 +132,7 @@ ControlAllocator::parameters_updated()
 
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		param_get(_param_handles.rotor_rpm_max[i], &_params.rotor_rpm_max[i]);
+		param_get(_param_handles.rotor_rpm_min[i], &_params.rotor_rpm_min[i]);
 	}
 
 	// Allocation method & effectiveness source
@@ -146,13 +153,17 @@ ControlAllocator::parameters_updated()
 	for (int i = 0; i < _num_control_allocation; ++i) {
 		_control_allocation[i]->updateParameters();
 		ActuatorVector rpm_max{};
+		ActuatorVector rpm_min{};
 		rpm_max.setAll(0.f);
+		rpm_min.setAll(0.f);
 
 		for (int motor = 0; motor < MAX_NUM_MOTORS; ++motor) {
 			rpm_max(motor) = _params.rotor_rpm_max[motor];
+			rpm_min(motor) = _params.rotor_rpm_min[motor];
 		}
 
 		_control_allocation[i]->setRpmMax(rpm_max);
+		_control_allocation[i]->setRpmMin(rpm_min);
 	}
 
 	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);

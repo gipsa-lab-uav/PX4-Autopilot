@@ -55,6 +55,51 @@ ControlAllocationPhysicsAccuratePseudoInverse::setRpmMax(const ActuatorVector &r
 }
 
 void
+ControlAllocationPhysicsAccuratePseudoInverse::setRpmMin(const ActuatorVector &rpm_min)
+{
+	for (int i = 0; i < NUM_ACTUATORS; ++i) {
+		_rpm_min(i) = fmaxf(rpm_min(i) * 1e-3f, 0.f);
+	}
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::rpmMax(int actuator) const
+{
+	return fmaxf(_rpm_max(actuator), 1e-3f);
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::rpmMin(int actuator) const
+{
+	return fminf(fmaxf(_rpm_min(actuator), 0.f), rpmMax(actuator) - 1e-3f);
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::rpmSpan(int actuator) const
+{
+	return fmaxf(rpmMax(actuator) - rpmMin(actuator), 1e-3f);
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::actuatorCommandToOmega(int actuator, float actuator_command) const
+{
+	return rpmMin(actuator) + actuator_command * rpmSpan(actuator);
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::actuatorCommandToOmegaSq(int actuator, float actuator_command) const
+{
+	const float omega = actuatorCommandToOmega(actuator, actuator_command);
+	return omega * omega;
+}
+
+float
+ControlAllocationPhysicsAccuratePseudoInverse::omegaToActuatorCommand(int actuator, float omega) const
+{
+	return (omega - rpmMin(actuator)) / rpmSpan(actuator);
+}
+
+void
 ControlAllocationPhysicsAccuratePseudoInverse::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
 	const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
@@ -210,10 +255,11 @@ ControlAllocationPhysicsAccuratePseudoInverse::normaliseActuatorSp()
 	for (int i = 0; i < _num_actuators; ++i) {
 		if (_actuator_max(i) > _actuator_min(i)) {
 			// The allocator solves in physical krpm^2. Convert back to a normalized
-			// speed command so THR_MDL_FAC can remain disabled for this mode.
+			// speed command in the ESC speed interval [rpm_min, rpm_max], so
+			// THR_MDL_FAC can remain disabled for this mode.
 			const float omega_sq = fmaxf(_actuator_sp(i), 0.f);
 			const float omega = sqrtf(omega_sq);
-			const float actuator_sp_normalized = omega / _rpm_max(i);
+			const float actuator_sp_normalized = omegaToActuatorCommand(i, omega);
 			_actuator_sp(i) = fminf(fmaxf(actuator_sp_normalized, _actuator_min(i)), _actuator_max(i));
 		}
 	}
@@ -231,9 +277,8 @@ ControlAllocationPhysicsAccuratePseudoInverse::normalisedControlToPhysical(
 
 		for (int actuator = 0; actuator < _num_actuators; ++actuator) {
 			const float coeff = _effectiveness(axis, actuator);
-			const float rpm_max_sq = _rpm_max(actuator) * _rpm_max(actuator);
-			const float actuator_min_physical = _actuator_min(actuator) * rpm_max_sq;
-			const float actuator_max_physical = _actuator_max(actuator) * rpm_max_sq;
+			const float actuator_min_physical = actuatorCommandToOmegaSq(actuator, _actuator_min(actuator));
+			const float actuator_max_physical = actuatorCommandToOmegaSq(actuator, _actuator_max(actuator));
 
 			if (coeff >= 0.f) {
 				axis_max += coeff * actuator_max_physical;
@@ -262,8 +307,7 @@ ControlAllocationPhysicsAccuratePseudoInverse::actuatorSetpointToPhysical(const 
 	ActuatorVector actuator_physical{};
 
 	for (int i = 0; i < _num_actuators; ++i) {
-		const float rpm_max_sq = _rpm_max(i) * _rpm_max(i);
-		actuator_physical(i) = actuator(i) * rpm_max_sq;
+		actuator_physical(i) = actuatorCommandToOmegaSq(i, actuator(i));
 	}
 
 	return actuator_physical;
@@ -303,7 +347,7 @@ ControlAllocationPhysicsAccuratePseudoInverse::publishDebugArray()
 	// [6..29]  effectiveness for first 4 actuators, scaled by 1e9
 	// [30..33] actuator_sp for first 4 actuators after normalization
 	// [34..37] rpm_max for first 4 actuators
-	// [38..41] thrust-axis z contribution, scaled by 1e9
+	// [38..41] rpm_min for first 4 actuators
 	// [42..45] yaw contribution, scaled by 1e9
 	// [46..49] pseudo-inverse thrust-z row contribution for first 4 actuators
 	// [50..53] pseudo-inverse yaw row contribution for first 4 actuators
@@ -334,7 +378,7 @@ ControlAllocationPhysicsAccuratePseudoInverse::publishDebugArray()
 		if (actuator < debug_actuators) {
 			debug_array.data[idx++] = _actuator_sp(actuator);
 			debug_array.data[idx++] = _rpm_max(actuator);
-			debug_array.data[idx++] = _effectiveness(THRUST_Z, actuator) * 1e9f;
+			debug_array.data[idx++] = _rpm_min(actuator);
 			debug_array.data[idx++] = _effectiveness(YAW, actuator) * 1e9f;
 			debug_array.data[idx++] = _mix(actuator, THRUST_Z);
 			debug_array.data[idx++] = _mix(actuator, YAW);
@@ -372,7 +416,8 @@ ControlAllocationPhysicsAccuratePseudoInverse::allocate()
 	// normalized speed command in [0, 1].
 	_actuator_sp = actuator_trim_physical + _mix * (control_sp_physical - control_trim_physical);
 
-	// Convert krpm^2 to normalized speed using sqrt(omega^2) / omega_max.
+	// Convert krpm^2 to a normalized command using the ESC speed interval
+	// [rpm_min, rpm_max].
 	normaliseActuatorSp();
 	// Disabled temporarily while debugging rotor geometry/effectiveness publication on debug_array.
 }

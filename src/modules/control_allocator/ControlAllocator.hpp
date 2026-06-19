@@ -117,12 +117,14 @@ private:
 
 	struct ParamHandles {
 		param_t rotor_rpm_max[MAX_NUM_MOTORS];
+		param_t rotor_rpm_min[MAX_NUM_MOTORS];
 		param_t slew_rate_motors[MAX_NUM_MOTORS];
 		param_t slew_rate_servos[MAX_NUM_SERVOS];
 	};
 
 	struct Params {
 		float rotor_rpm_max[MAX_NUM_MOTORS];
+		float rotor_rpm_min[MAX_NUM_MOTORS];
 		float slew_rate_motors[MAX_NUM_MOTORS];
 		float slew_rate_servos[MAX_NUM_SERVOS];
 	};
