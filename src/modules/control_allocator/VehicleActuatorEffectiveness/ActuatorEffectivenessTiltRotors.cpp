@@ -45,6 +45,11 @@ using namespace matrix;
 
 static constexpr float MIN_VALID_THRUST_COEF = 1e-12f;
 
+static bool usePhysicalRotorCoefficients(AllocationMethod allocation_method)
+{
+	return allocation_method == AllocationMethod::PHYSICS_ACCURATE_PSEUDO_INVERSE;
+}
+
 ActuatorEffectivenessTiltRotors::ActuatorEffectivenessTiltRotors(ModuleParams *parent, ThrustAxisConfiguration axis_config)
 	: ModuleParams(parent), _axis_config(axis_config)
 {
@@ -79,6 +84,12 @@ ActuatorEffectivenessTiltRotors::ActuatorEffectivenessTiltRotors(ModuleParams *p
 		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_KM", i);
 		_param_handles[i].moment_ratio = param_find(buffer);
 
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PCT", i);
+		_param_handles[i].physical_thrust_coef = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PKM", i);
+		_param_handles[i].physical_moment_coef = param_find(buffer);
+
 		snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_MINA", i);
 		_param_handles[i].tilt_min_angle = param_find(buffer);
 
@@ -87,6 +98,16 @@ ActuatorEffectivenessTiltRotors::ActuatorEffectivenessTiltRotors(ModuleParams *p
 
 	}
 
+	updateParams();
+}
+
+void ActuatorEffectivenessTiltRotors::setAllocationMethod(AllocationMethod allocation_method)
+{
+	if (_allocation_method == allocation_method) {
+		return;
+	}
+
+	_allocation_method = allocation_method;
 	updateParams();
 }
 
@@ -125,8 +146,14 @@ void ActuatorEffectivenessTiltRotors::updateParams()
 		param_get(_param_handles[i].tilt_axis_y, &tilt_axis(1));
 		param_get(_param_handles[i].tilt_axis_z, &tilt_axis(2));
 
-		param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
-		param_get(_param_handles[i].moment_ratio, &_geometry.rotors[i].moment_ratio);
+		if (usePhysicalRotorCoefficients(_allocation_method)) {
+			param_get(_param_handles[i].physical_thrust_coef, &_geometry.rotors[i].thrust_coef);
+			param_get(_param_handles[i].physical_moment_coef, &_geometry.rotors[i].moment_ratio);
+
+		} else {
+			param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
+			param_get(_param_handles[i].moment_ratio, &_geometry.rotors[i].moment_ratio);
+		}
 
 		param_get(_param_handles[i].tilt_min_angle, &_geometry.rotors[i].tilt_min_angle);
 		param_get(_param_handles[i].tilt_max_angle, &_geometry.rotors[i].tilt_max_angle);
@@ -147,7 +174,8 @@ ActuatorEffectivenessTiltRotors::addActuators(Configuration &configuration)
 
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
-			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+			    configuration.num_actuators_matrix[configuration.selected_matrix],
+			    _allocation_method);
 
 	_actuator_start_index = configuration.num_actuators_matrix[configuration.selected_matrix];
 
@@ -158,9 +186,10 @@ ActuatorEffectivenessTiltRotors::addActuators(Configuration &configuration)
 
 int
 ActuatorEffectivenessTiltRotors::computeEffectivenessMatrix(const Geometry &geometry,
-		EffectivenessMatrix &effectiveness, int actuator_start_index)
+		EffectivenessMatrix &effectiveness, int actuator_start_index, AllocationMethod allocation_method)
 {
 	int num_actuators = 0;
+	const bool use_physical_coefficients = usePhysicalRotorCoefficients(allocation_method);
 
 	for (int i = 0; i < geometry.num_rotors; i++) {
 
@@ -219,10 +248,12 @@ ActuatorEffectivenessTiltRotors::computeEffectivenessMatrix(const Geometry &geom
 		matrix::Vector3f thrust_sint = ct * tilt_axis.cross(thrust_axis);
 		matrix::Vector3f thrust_axis_sint = tilt_axis.cross(thrust_axis);
 
-		// The rotor drag term uses a physical torque coefficient, such that
-		// torque = KM * speed^2, for both the cosine and sine tilt basis.
-		matrix::Vector3f moment_cost = position.cross(thrust_cost) - km * thrust_axis;
-		matrix::Vector3f moment_sint = position.cross(thrust_sint) - km * thrust_axis_sint;
+		// Legacy mode keeps the PX4 ratio convention Torque = KM * Thrust.
+		// Physics mode uses a physical torque coefficient Torque = KM * speed^2.
+		matrix::Vector3f moment_cost = position.cross(thrust_cost)
+				       - (use_physical_coefficients ? km : ct * km) * thrust_axis;
+		matrix::Vector3f moment_sint = position.cross(thrust_sint)
+				       - (use_physical_coefficients ? km : ct * km) * thrust_axis_sint;
 
 		// Fill corresponding items in effectiveness matrix
 		for (size_t j = 0; j < 3; j++) {

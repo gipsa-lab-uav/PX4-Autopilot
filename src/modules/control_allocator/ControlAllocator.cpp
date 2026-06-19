@@ -133,6 +133,12 @@ ControlAllocator::parameters_updated()
 	bool updated = update_effectiveness_source();
 	update_allocation_method(updated); // must be called after update_effectiveness_source()
 
+	if (_actuator_effectiveness == nullptr) {
+		return;
+	}
+
+	_actuator_effectiveness->setAllocationMethod((AllocationMethod)_param_ca_method.get());
+
 	if (_num_control_allocation == 0) {
 		return;
 	}

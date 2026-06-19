@@ -98,11 +98,14 @@ public:
 	}
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
+					      AllocationMethod allocation_method = AllocationMethod::AUTO);
 
 	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "Rotors"; }
+
+	void setAllocationMethod(AllocationMethod allocation_method) override;
 
 	/**
 	 * Sets the motor axis from tilt configurations and current tilt control.
@@ -147,12 +150,15 @@ private:
 		param_t axis_z;
 		param_t thrust_coef;
 		param_t moment_ratio;
+		param_t physical_thrust_coef;
+		param_t physical_moment_coef;
 		param_t tilt_index;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 
 	Geometry _geometry{};
 	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
+	AllocationMethod _allocation_method{AllocationMethod::AUTO};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count

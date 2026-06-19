@@ -54,6 +54,11 @@ public:
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,
 			    const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) override;
 
+	void setAllocationMethod(AllocationMethod allocation_method) override
+	{
+		_rotors.setAllocationMethod(allocation_method);
+	}
+
 private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;

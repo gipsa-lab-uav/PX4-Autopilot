@@ -55,6 +55,11 @@ public:
 		normalize[0] = true;
 	}
 
+	void setAllocationMethod(AllocationMethod allocation_method) override
+	{
+		_mc_rotors.setAllocationMethod(allocation_method);
+	}
+
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,
 			    const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) override;
 

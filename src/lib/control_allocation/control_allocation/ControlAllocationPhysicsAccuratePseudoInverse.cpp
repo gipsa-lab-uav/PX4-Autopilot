@@ -209,8 +209,11 @@ ControlAllocationPhysicsAccuratePseudoInverse::normaliseActuatorSp()
 {
 	for (int i = 0; i < _num_actuators; ++i) {
 		if (_actuator_max(i) > _actuator_min(i)) {
-			const float rpm_max_sq = _rpm_max(i) * _rpm_max(i);
-			const float actuator_sp_normalized = _actuator_sp(i) / rpm_max_sq;
+			// The allocator solves in physical krpm^2. Convert back to a normalized
+			// speed command so THR_MDL_FAC can remain disabled for this mode.
+			const float omega_sq = fmaxf(_actuator_sp(i), 0.f);
+			const float omega = sqrtf(omega_sq);
+			const float actuator_sp_normalized = omega / _rpm_max(i);
 			_actuator_sp(i) = fminf(fmaxf(actuator_sp_normalized, _actuator_min(i)), _actuator_max(i));
 		}
 	}
@@ -365,10 +368,11 @@ ControlAllocationPhysicsAccuratePseudoInverse::allocate()
 	const ActuatorVector actuator_trim_physical = actuatorSetpointToPhysical(_actuator_trim);
 	publishPhysicalControlSetpoints(control_sp_physical);
 
-	// Allocate in physical actuator units (krpm^2), then convert back to [0, 1].
+	// Allocate in physical actuator units (krpm^2), then convert back to a
+	// normalized speed command in [0, 1].
 	_actuator_sp = actuator_trim_physical + _mix * (control_sp_physical - control_trim_physical);
 
-	// Normalize actuator set_point with rpm_max (image of thrust max)
+	// Convert krpm^2 to normalized speed using sqrt(omega^2) / omega_max.
 	normaliseActuatorSp();
 	// Disabled temporarily while debugging rotor geometry/effectiveness publication on debug_array.
 }

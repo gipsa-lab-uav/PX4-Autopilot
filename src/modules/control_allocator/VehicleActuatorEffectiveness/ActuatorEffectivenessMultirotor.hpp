@@ -54,6 +54,11 @@ public:
 		normalize[0] = true;
 	}
 
+	void setAllocationMethod(AllocationMethod allocation_method) override
+	{
+		_mc_rotors.setAllocationMethod(allocation_method);
+	}
+
 	const char *name() const override { return "Multirotor"; }
 
 protected:

@@ -161,6 +161,13 @@ public:
 	}
 
 	/**
+	 * Notify the effectiveness source about the configured allocation method.
+	 * This can be used to switch parameter interpretation without duplicating
+	 * ownership of CA_METHOD in helper classes.
+	 */
+	virtual void setAllocationMethod(AllocationMethod) {}
+
+	/**
 	 * Get the control effectiveness matrix if updated
 	 *
 	 * @return true if updated and matrix is set
