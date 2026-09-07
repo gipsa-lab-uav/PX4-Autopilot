@@ -291,7 +291,11 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
+#ifdef CONFIG_FS_LITTLEFS
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1800));  /* littlefs needs more stack */
+#else
 	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1170));
+#endif
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
@@ -679,7 +683,7 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	// Clear buffer and counters
 	_head = 0;
 	_count = 0;
-	_total_written = 0;
+	_total_written.store(0);
 
 	_should_run = true;
 
@@ -715,7 +719,7 @@ void LogWriterFile::LogFileBuffer::close_file()
 			PX4_WARN("closing log file failed (%i)", errno);
 
 		} else {
-			PX4_INFO("closed logfile, bytes written: %zu", _total_written);
+			PX4_INFO("closed logfile, bytes written: %zu", _total_written.load());
 		}
 	}
 }
@@ -724,6 +728,7 @@ void LogWriterFile::LogFileBuffer::reset()
 {
 	_head = 0;
 	_count = 0;
+	_total_written.store(0);
 	_fd = -1;
 }
 

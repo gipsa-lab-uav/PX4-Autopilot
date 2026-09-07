@@ -6,6 +6,8 @@
 
 #include <sys/stat.h>
 
+ModuleBase::Descriptor Raptor::desc{task_spawn, custom_command, print_usage};
+
 Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	// node state
@@ -184,6 +186,7 @@ bool Raptor::init()
 			rewind(f);
 			bool successfully_loaded = false;
 			using SPEC = rlt::persist::backends::tar::ReaderGroupSpecification<TI, rlt::persist::backends::tar::PosixFileData<TI>>;
+
 			rlt::persist::backends::tar::ReaderGroup<SPEC> reader_group;
 			reader_group.data.f = f;
 			reader_group.data.size = size;
@@ -252,11 +255,12 @@ bool Raptor::init()
 	register_ext_component_request.timestamp = hrt_absolute_time();
 	strncpy(register_ext_component_request.name, "RAPTOR", sizeof(register_ext_component_request.name) - 1);
 	register_ext_component_request.request_id = Raptor::EXT_COMPONENT_REQUEST_ID;
-	register_ext_component_request.px4_ros2_api_version = 1;
+	register_ext_component_request.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 	register_ext_component_request.register_arming_check = true;
 	register_ext_component_request.register_mode = true;
 	register_ext_component_request.enable_replace_internal_mode = _param_mc_raptor_offboard.get();
 	register_ext_component_request.replace_internal_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	register_ext_component_request.request_offboard_setpoints = true;
 	_register_ext_component_request_pub.publish(register_ext_component_request);
 
 	int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
@@ -442,7 +446,7 @@ void Raptor::Run()
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
 
-		if (flightmode_state >= FlightModeState::REGISTERED) {
+		if (flightmode_state >= FlightModeState::CONFIGURED) {
 			unregister_ext_component_s unregister_ext_component{};
 			unregister_ext_component.timestamp = hrt_absolute_time();
 			strncpy(unregister_ext_component.name, "RAPTOR", sizeof(unregister_ext_component.name) - 1);
@@ -453,7 +457,7 @@ void Raptor::Run()
 		}
 
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -463,27 +467,10 @@ void Raptor::Run()
 		if (register_ext_component_reply.request_id == Raptor::EXT_COMPONENT_REQUEST_ID && register_ext_component_reply.success) {
 			ext_component_arming_check_id = register_ext_component_reply.arming_check_id;
 			ext_component_mode_id = register_ext_component_reply.mode_id;
-			flightmode_state = FlightModeState::REGISTERED;
+			flightmode_state = FlightModeState::CONFIGURED;
 			PX4_INFO("Raptor mode registration successful, arming_check_id: %d, mode_id: %d", ext_component_arming_check_id, ext_component_mode_id);
 		}
 	}
-
-	if (flightmode_state == FlightModeState::REGISTERED) {
-		vehicle_control_mode_s config_control_setpoints{};
-		config_control_setpoints.timestamp = hrt_absolute_time();
-		config_control_setpoints.source_id = ext_component_mode_id;
-		config_control_setpoints.flag_multicopter_position_control_enabled = false;
-		config_control_setpoints.flag_control_manual_enabled = false;
-		config_control_setpoints.flag_control_offboard_enabled = false;
-		config_control_setpoints.flag_control_position_enabled = false;
-		config_control_setpoints.flag_control_climb_rate_enabled = false;
-		config_control_setpoints.flag_control_allocation_enabled = false;
-		config_control_setpoints.flag_control_termination_enabled = true;
-		_config_control_setpoints_pub.publish(config_control_setpoints);
-		flightmode_state = FlightModeState::CONFIGURED;
-		PX4_INFO("Raptor mode configuration sent");
-	}
-
 
 	perf_count(_loop_interval_perf);
 
@@ -534,6 +521,15 @@ void Raptor::Run()
 	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
 
 	if (!previous_active && next_active) {
+
+		// Activate setpoint type
+		setpoint_config_s setpoint_config{};
+		setpoint_config.timestamp = hrt_absolute_time();
+		setpoint_config.source_id = ext_component_mode_id;
+		setpoint_config.type = setpoint_config_s::TYPE_DIRECT_ACTUATORS;
+		setpoint_config.should_apply = true;
+		_setpoint_config_pub.publish(setpoint_config);
+
 		this->reset();
 		PX4_INFO("Resetting Inference Executor (Recurrent State)");
 
@@ -969,8 +965,8 @@ int Raptor::task_spawn(int argc, char *argv[])
 	Raptor *instance = new Raptor();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -981,8 +977,8 @@ int Raptor::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -1006,7 +1002,7 @@ int Raptor::custom_command(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 
-			Raptor *instance = get_instance();
+			Raptor *instance = get_instance<Raptor>(desc);
 
 			if (instance == nullptr) {
 				PX4_ERR("mc_raptor is not running");
@@ -1073,5 +1069,5 @@ RAPTOR Policy Flight Mode
 
 extern "C" __EXPORT int mc_raptor_main(int argc, char *argv[])
 {
-	return Raptor::main(argc, argv);
+	return ModuleBase::main(Raptor::desc, argc, argv);
 }

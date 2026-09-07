@@ -49,6 +49,7 @@ if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
 		1101_rc_plane_sih.hil
 		1102_tailsitter_duo_sih.hil
 		1103_standard_vtol_sih.hil
+		1105_rc_hexa_x_sih.hil
 	)
 	if(CONFIG_MODULES_ROVER_ACKERMANN)
 		px4_add_romfs_files(
@@ -132,6 +133,7 @@ endif()
 
 if(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
 	px4_add_romfs_files(
+		2500_generic_airship
 		2507_cloudship
 	)
 endif()
@@ -151,6 +153,7 @@ if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 		# [50000, 50999] Differential rovers
 		50000_generic_rover_differential
 		50001_aion_robotics_r1_rover
+		50002_hiwonder_tracked
 	)
 endif()
 
@@ -160,6 +163,7 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 		51000_generic_rover_ackermann
 		51001_axial_scx10_2_trail_honcho
 		51002_nxp_b3rb
+		51003_hiwonder_ackermann
 	)
 endif()
 
@@ -167,6 +171,7 @@ if(CONFIG_MODULES_ROVER_MECANUM)
 	px4_add_romfs_files(
 		# [52000, 52999] Mecanum rovers
 		52000_generic_rover_mecanum
+		52001_hiwonder_mecanum
 	)
 endif()
 

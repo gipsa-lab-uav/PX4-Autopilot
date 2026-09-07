@@ -63,10 +63,12 @@
 
 using namespace time_literals;
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams,
+class MulticopterAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterAttitudeControl(bool vtol = false);
 	~MulticopterAttitudeControl() override;
 
@@ -158,6 +160,10 @@ private:
 		(ParamFloat<px4::params::MC_ROLLRATE_MAX>)  _param_mc_rollrate_max,
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>)   _param_mc_yawrate_max,
+
+		(ParamFloat<px4::params::MC_REF_W_N>)        _param_mc_ref_w_n,
+		(ParamFloat<px4::params::MC_REF_FF>)         _param_mc_ref_ff,
+		(ParamFloat<px4::params::MC_REF_FF_MAX>)     _param_mc_ref_ff_max,
 
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::MAN_DEADZONE>) _param_man_deadzone,

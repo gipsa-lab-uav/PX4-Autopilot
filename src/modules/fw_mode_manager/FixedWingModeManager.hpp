@@ -75,7 +75,6 @@
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
-#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -151,10 +150,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
+class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedWingModeManager();
 	~FixedWingModeManager() override;
 
@@ -256,7 +257,7 @@ private:
 	float _pitch{0.0f}; // [rad] current pitch angle from attitude
 	float _throttle{0.0f}; // [0-1] last set throttle
 
-	float _body_acceleration_x{0.f};
+	float _body_acceleration_norm{0.f};
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
@@ -297,6 +298,9 @@ private:
 
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
+
+	// [us] time stamp of (runway/catapult) launch detection
+	hrt_abstime _time_launch_detected{0};
 
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector) or takeoff is started (runway)
 	Vector2d _takeoff_init_position{0, 0};
@@ -381,6 +385,7 @@ private:
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
+	bool _go_direct_to_destination{false};
 
 	// CLosest point on path to track
 	matrix::Vector2f _closest_point_on_path;
@@ -413,7 +418,7 @@ private:
 	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				    const position_setpoint_s &pos_sp_curr);
 
-	void publishFigureEightStatus(const position_setpoint_s pos_sp);
+	void publishFigureEightStatus(const position_setpoint_s &pos_sp);
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 	// Update our local parameter cache.
@@ -667,7 +672,7 @@ private:
 	 */
 	void set_control_mode_current(const hrt_abstime &now);
 
-	void publishOrbitStatus(const position_setpoint_s pos_sp);
+	void publishOrbitStatus(const position_setpoint_s &pos_sp);
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 
@@ -842,6 +847,8 @@ private:
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
 
+		(ParamFloat<px4::params::FW_WP_RST_DIST>) _param_fw_wp_rst_dist,
+
 		(ParamFloat<px4::params::FW_LND_AIRSPD>) _param_fw_lnd_airspd,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
@@ -865,6 +872,10 @@ private:
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 
+		// Launch detection parameters
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+		(ParamFloat<px4::params::FW_LAUN_CS_LK_DY>) _param_fw_laun_cs_lk_dy,
+
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
@@ -881,7 +892,6 @@ private:
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,

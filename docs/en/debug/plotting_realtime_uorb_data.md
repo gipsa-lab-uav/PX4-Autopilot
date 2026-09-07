@@ -23,7 +23,7 @@ Follow the [ROS 2 Installation & Setup](../ros2/user_guide.md#installation-setup
 
 You will also need to install:
 
-- [PlotJuggler for ROS2](https://github.com/facontidavide/PlotJuggler)
+- [PlotJuggler for ROS2](https://github.com/PlotJuggler/PlotJuggler)
 
   ::: tip
   Use the Debian packages (the snap files are not supported).
@@ -70,7 +70,7 @@ cd ~/PX4-Autopilot
 make px4_sitl gz_x500
 ```
 
-Open another terminal and start the `MicroXRCEAgent` to connect to the the simulator:
+Open another terminal and start the `MicroXRCEAgent` to connect to the simulator:
 
 ```sh
 MicroXRCEAgent udp4 -p 8888; exec bash

@@ -60,7 +60,7 @@ See [Foxglove PX4 Docs](https://docs.foxglove.dev/docs/getting-started/framework
 
 ### PlotJuggler
 
-[PlotJuggler](https://github.com/facontidavide/PlotJuggler) is a desktop application that allows users to easily visualize and analyze data expressed in the form of time series.
+[PlotJuggler](https://github.com/PlotJuggler/PlotJuggler) is a desktop application that allows users to easily visualize and analyze data expressed in the form of time series.
 This is one of the best ULog analysis tools as it exposes all information in the log ([Flight Review](#flight-review-online-tool), by comparison, only shows a small subset of the data).
 
 It supports ULog files (.ulg) since version 2.1.4.
@@ -73,7 +73,7 @@ Key features:
 - Once you arranged your data, save it into a "Layout" file and reload it multiple times.
 - Process your data inside _PlotJuggler_ itself, using custom "data transformations".
 
-Source code and downloads are available on [Github](https://github.com/facontidavide/PlotJuggler).
+Source code and downloads are available on [Github](https://github.com/PlotJuggler/PlotJuggler).
 
 ![PlotJuggler](../../assets/flight_log_analysis/plot_juggler/plotjuggler_example_view.png)
 
@@ -156,7 +156,7 @@ Key features:
 ### PX4Tools
 
 [PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
-The recommended installation procedure is to use [anaconda3](https://conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
+The recommended installation procedure is to use [anaconda3](https://docs.conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
 
 Key features:
 

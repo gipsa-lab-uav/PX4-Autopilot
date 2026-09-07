@@ -11,7 +11,7 @@ _Режим місії_ змушує транспортний засіб вик�
 - Транспортний засіб повинен бути озброєний перед тим, як цей режим може бути активований.
 - Цей режим є автоматичним - для керування автомобілем не потрібно втручання користувача.
 - Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
-- Рух палиць дистанційного керування буде [за замовчуванням](#COM_RC_OVERRIDE) змінювати транспортний засіб на [режим позиції](../flight_modes_mc/position.md), якщо не виникне критична аварія батареї.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
   Це справжнє для багтороторів і ВПС у режимі КУ.
 
 :::
@@ -30,7 +30,6 @@ They may also be created by a MAVLink API such as [MAVSDK](../robotics/mavsdk.md
 На високому рівні всі типи транспортних засобів ведуть себе однаково, коли ввімкнено режим МІСІЯ:
 
 1. Якщо місія не збережена, або якщо PX4 завершив виконання всіх команд місії, або якщо [місія не є можливою](#mission-feasibility-checks):
-
    - Якщо літає транспортний засіб, він буде утримувати.
    - Якщо посадять транспортний засіб, він буде "чекати".
 
@@ -65,7 +64,7 @@ They may also be created by a MAVLink API such as [MAVSDK](../robotics/mavsdk.md
 Якщо транспортний засіб не захоплював зображення, коли він був призупинений, під час відновлення він рухатиметься зі своєї _поточної позиції_ до тієї ж точки шляху, до якої він спочатку рухався.
 Якщо транспортний засіб захоплював зображення (має елементи спуску камери), він замість цього рухатиметься зі своєї поточної позиції до останньої точки шляху, якою він проїхав (перед зупинкою), а потім пройде свій шлях з тією самою швидкістю та з такою самою поведінкою спуску камери.
 Це забезпечує, що планований шлях зафіксований під час місій з опитування/камери.
-Місію можна завантажити, коли транспортний засіб зупинений, у такому випадку поточний активний елемент місії встановлюється на 1.
+A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 :::info
 Коли місію призупинено під час спрацювання камери на транспортному засобі, PX4 встановлює поточний активний пункт місії на попередню точку маршруту, так що при відновленні місії транспортний засіб буде повторювати свій останній етап місії.
@@ -101,8 +100,8 @@ _QGroundControl_ надає додаткову підтримку обробки
 
 Для додаткової інформації дивіться:
 
-- [Видалити місію після посадки транспортного засобу](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
-- [Відновити місію після режиму Повернення](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
+- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
+- [Resume mission after Return mode](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
 
 ## Параметри місії
 
@@ -111,15 +110,15 @@ _QGroundControl_ надає додаткову підтримку обробки
 
 Загальні параметри:
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                                                                                                                      |
+| Parameter                                                                                                                                                               | Опис                                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                                  | Режим аварійного відновлення зв'язку RC (що робить транспортний засіб, якщо втрачає зв'язок RC) - наприклад, увійти в режим утримання, режим повернення, завершити тощо.                                                                                                                                               |
 | <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE)                      | Контролює переміщення джойстика на мультикоптері (або конвертоплані у режимі MC) повертає керування пілоту в [Режим положення](../flight_modes_mc/position.md). Це можна окремо увімкнути для автоматичних режимів та для режиму поза бортом, і в автоматичних режимах воно включено за замовчуванням. |
-| <a id="COM_RC_STICK_OV"></a>[COM_RC_STICK_OV](../advanced_config/parameter_reference.md#COM_RC_STICK_OV) | Кількість рухів стиків, яка викликає перехід у [режим Положення](../flight_modes_mc/position.md) (якщо [COM_RC_OVERRIDE](#COM_RC_OVERRIDE) увімкнено).                                                                                                                       |
+| <a id="COM_RC_STICK_OV"></a>[COM_RC_STICK_OV](../advanced_config/parameter_reference.md#COM_RC_STICK_OV) | The amount of stick movement that causes a transition to [Position mode](../flight_modes_mc/position.md) (if [COM_RC_OVERRIDE](#COM_RC_OVERRIDE) is enabled).                                                                                                                |
 
 Параметри, пов'язані з [перевірками можливостей місії](#mission-feasibility-checks):
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                            |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                            |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Вимкнено, якщо значення дорівнює 0 або менше. |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Максимальний кут нахилу підйому.                                                                                                                                |

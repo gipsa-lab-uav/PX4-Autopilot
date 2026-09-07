@@ -105,6 +105,10 @@ private:
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 	void ConfigureFIFOWatermark(uint8_t samples);
+<<<<<<< HEAD
+=======
+	void UpdateVariantRegisterConfig();
+>>>>>>> PX4/release/1.18
 
 	const spi_drdy_gpio_t _drdy_gpio;
 	PX4Accelerometer _px4_accel;
@@ -133,6 +137,16 @@ private:
 		FIFO_READ,
 	} _state{STATE::RESET};
 
+<<<<<<< HEAD
+=======
+	enum class DeviceVariant : uint8_t {
+		LSM6DSV16X,
+		LSM6DSV32X,
+		LSM6DSK320X,
+	};
+	DeviceVariant _device_variant{DeviceVariant::LSM6DSV16X};
+
+>>>>>>> PX4/release/1.18
 	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_ODR))};
 

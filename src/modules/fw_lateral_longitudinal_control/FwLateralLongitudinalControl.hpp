@@ -84,10 +84,12 @@
 static constexpr fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 static constexpr fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
 
-class FwLateralLongitudinalControl final : public ModuleBase<FwLateralLongitudinalControl>, public ModuleParams,
+class FwLateralLongitudinalControl final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FwLateralLongitudinalControl(bool is_vtol);
 
 	~FwLateralLongitudinalControl() override;
@@ -158,9 +160,6 @@ private:
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
-		(ParamFloat<px4::params::FW_T_SPD_STD>) _param_speed_standard_dev,
-		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
-		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
@@ -202,6 +201,7 @@ private:
 	vehicle_attitude_setpoint_s _att_sp{};
 	bool _landed{false};
 	float _can_run_factor{0.f};
+	float _load_factor_from_bank_angle{1.f};
 	SlewRate<float> _airspeed_slew_rate_controller;
 
 	perf_counter_t _loop_perf; // loop performance counter
@@ -248,8 +248,6 @@ private:
 	void updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in);
 
 	void updateControllerConfiguration(hrt_abstime now);
-
-	float getLoadFactor() const;
 
 	/**
 	 * @brief Returns an adapted calibrated airspeed setpoint

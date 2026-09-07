@@ -36,6 +36,7 @@
 
 BMP581::BMP581(const I2CSPIDriverConfig &config, IBMP581 *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -137,8 +138,12 @@ int BMP581::collect()
 
 	perf_begin(_sample_perf);
 
-	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the pressure was
+	 * integrated over the preceding measurement_time window, so the
+	 * effective sample midpoint is half the measurement time before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = get_measurement_time() / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 
 	int_status = get_interrupt_status();
 
@@ -153,14 +158,9 @@ int BMP581::collect()
 	}
 
 	//publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = data.pressure;
-	sensor_baro.temperature = data.temperature;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(data.temperature);
+	_px4_baro.update(timestamp_sample, data.pressure);
 
 	perf_end(_sample_perf);
 

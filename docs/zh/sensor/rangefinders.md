@@ -29,6 +29,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [LightWare SF45/B]                                                        | ToF (IR laser)  | ~50 m                                                                       | UART                                      | ~ | Rotary lidar (collision prevention) |
 | [MaxBotix I2CXL-MaxSonar-EZ]                                              | Ultrasonic                         |                                                                                             | I2C                                       | ~ |                                                        |
 | [RaccoonLab Cyphal & DroneCAN µRANGEFINDER]                               | ToF (IR)        | ~0.1 m – ~8 m                               | DroneCAN, Cyphal                          | ~ |                                                        |
+| [Sony AS-DT1]                                                             | ToF                                | up to 40 m                                                                                  | UART                                      | ~ | Multipoint distance sensor                             |
 | [TeraRanger Evo 60 m] | ToF (IR)        | 0.5 m – 60 m                                                                | I2C                                       | ~ |                                                        |
 | [TeraRanger Evo 600Hz]                                                    | ToF (IR)        | 0.75 m – 8 m                                                                | I2C                                       | ~ | High update rate (600 Hz)           |
 | [LightWare SF02] _(disc.)_                                                | ToF (IR laser)  | ~50 m                                                                       | UART                                      | ~ | Discontinued                                           |
@@ -55,6 +56,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [LightWare SF10/B]: ../sensor/sfxx_lidar.md
 [LightWare SF10/C]: ../sensor/sfxx_lidar.md
 [MaxBotix I2CXL-MaxSonar-EZ]: #maxbotix-i2cxl-maxsonar-ez
+[Sony AS-DT1]: ../sensor/sony_asdt1.md
 [TeraRanger Evo 60 m]: ../sensor/teraranger.md
 [TeraRanger Evo 600Hz]: ../sensor/teraranger.md
 [TeraRanger One]: ../sensor/teraranger.md
@@ -93,7 +95,7 @@ It comes with a JST GHR 4 pin connector that is compatible with the I2C port on 
 
 ### MaxBotix I2CXL-MaxSonar-EZ
 
-The MaxBotix [I2CXL-MaxSonar-EZ](https://www.maxbotix.com/product-category/i2cxl-maxsonar-ez-products) range has a number of relatively short-ranged sonar based rangefinders that are suitable for assisted takeoff/landing and collision avoidance.
+The MaxBotix [I2CXL-MaxSonar-EZ](https://maxbotix.com/collections/i2cxl-maxsonar-ez-products) range has a number of relatively short-ranged sonar based rangefinders that are suitable for assisted takeoff/landing and collision avoidance.
 这些可以使用 I2C 端口连接。
 
 The rangefinders are enabled using the parameter [SENS_EN_MB12XX](../advanced_config/parameter_reference.md#SENS_EN_MB12XX).
@@ -108,6 +110,11 @@ PX4 也可用于一下停产的型号: SF02, SF10/a, SF10/b, SF10/c.
 Others may be supported via the [RaccoonLab Cyphal and DroneCAN Rangefinder Adapter](#raccoonlab-cyphal-and-dronecan-rangefinder-adapter) described below.
 
 PX4 also supports the [LightWare LiDAR SF45 Rotating Lidar](../sensor/sf45_rotating_lidar.md) for [collision prevention](../computer_vision/collision_prevention.md) applications.
+
+### Sony AS-DT1
+
+[Sony AS-DT1](../sensor/sony_asdt1.md) is a multipoint distance sensor that connects to PX4 over a UART/serial port.
+PX4 configures the sensor baud rate and measurement output from the driver.
 
 ### TeraRanger 测距仪
 
@@ -163,7 +170,7 @@ Features:
 
 - [VL53L1CBV0FY-1](https://www.st.com/resource/en/datasheet/vl53l1.pdf) sensor
 - Input voltage sensor
-- CAN connectors: 2 [UCANPHY Micro (JST-GH 4)](https://raccoonlabdev.github.io/docs/guide/wires/).
+- CAN connectors: 2 [UCANPHY Micro (JST-GH 4)](https://docs.raccoonlab.co/guide/wires/).
 
 ## Configuration/Setup {#configuration}
 

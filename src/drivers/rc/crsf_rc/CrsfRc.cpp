@@ -37,12 +37,9 @@
 
 #include <fcntl.h>
 
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_status.h>
-
 using namespace time_literals;
+
+ModuleBase::Descriptor CrsfRc::desc{task_spawn, custom_command, print_usage};
 
 #define CRSF_BAUDRATE 420000
 
@@ -109,8 +106,8 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	instance->ScheduleNow();
 
@@ -128,7 +125,7 @@ void CrsfRc::Run()
 			_uart = nullptr;
 		}
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -189,6 +186,43 @@ void CrsfRc::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
+	}
+
+	vehicle_command_s vcmd{};
+
+	if (_vehicle_cmd_sub.update(&vcmd)) {
+		if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
+			uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+			if (!_is_singlewire && !_armed) {
+				if ((int)vcmd.param1 == vehicle_command_s::RC_TYPE_CRSF) {
+					if (BindCRSF()) {
+						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					}
+				}
+
+			} else {
+				cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+
+			// publish acknowledgement
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vcmd.command;
+			command_ack.result = cmd_ret;
+			command_ack.target_system = vcmd.source_system;
+			command_ack.target_component = vcmd.source_component;
+			command_ack.timestamp = hrt_absolute_time();
+			uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+			vehicle_command_ack_pub.publish(command_ack);
+		}
+	}
 
 	// Read all available data from the serial RC input UART
 	int new_bytes = _uart->readAtLeast(&_rcs_buf[0], RC_MAX_BUFFER_SIZE, 1, 100);
@@ -516,6 +550,23 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	return _uart->write((void *) buf, (size_t) offset);
 }
 
+bool CrsfRc::BindCRSF()
+{
+	uint8_t bind_frame[] = {
+		0xC8,  // sync
+		0x07,  // frame length
+		(uint8_t)crsf_frame_type_t::command,
+		(uint8_t)crsf_address_t::crsf_receiver,
+		(uint8_t)crsf_address_t::flight_controller,
+		(uint8_t)crsf_sub_command_t::subcmd_rx,
+		(uint8_t)crsf_sub_command_t::subcmd_rx_bind,
+		0x9E,  // command CRC8
+		0xE8,  // packet CRC8
+	};
+
+	return _uart->write((void *)bind_frame, sizeof(bind_frame)) == sizeof(bind_frame);
+}
+
 int CrsfRc::print_status()
 {
 	if (_device[0] != '\0') {
@@ -545,10 +596,20 @@ int CrsfRc::print_status()
 
 int CrsfRc::custom_command(int argc, char *argv[])
 {
+	if (!strcmp(argv[0], "bind")) {
+		uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
+		vehicle_command_s vcmd{};
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
+		vcmd.param1 = vehicle_command_s::RC_TYPE_CRSF;
+		vcmd.timestamp = hrt_absolute_time();
+		vehicle_command_pub.publish(vcmd);
+		return 0;
+	}
+
 #ifdef CONFIG_RC_CRSF_INJECT
 
 	if (!strcmp(argv[0], "start")) {
-		if (is_running()) {
+		if (is_running(desc)) {
 			return print_usage("already running");
 		}
 
@@ -559,7 +620,7 @@ int CrsfRc::custom_command(int argc, char *argv[])
 		}
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		return print_usage("not running");
 	}
 
@@ -602,6 +663,7 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a CRSF bind command (not available on singlewire)");
 #ifdef CONFIG_RC_CRSF_INJECT
 	PRINT_MODULE_USAGE_COMMAND_DESCR("inject", "Inject frame data bytes (for testing)");
 #endif
@@ -612,5 +674,5 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 
 extern "C" __EXPORT int crsf_rc_main(int argc, char *argv[])
 {
-	return CrsfRc::main(argc, argv);
+	return ModuleBase::main(CrsfRc::desc, argc, argv);
 }
