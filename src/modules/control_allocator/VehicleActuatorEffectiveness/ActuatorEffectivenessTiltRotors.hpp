@@ -93,11 +93,14 @@ public:
 	}
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
+					      AllocationMethod allocation_method = AllocationMethod::AUTO);
 
 	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "TiltRotors"; }
+
+	void setAllocationMethod(AllocationMethod allocation_method) override;
 
 	const Geometry &geometry() const { return _geometry; }
 
@@ -123,12 +126,15 @@ private:
 		param_t tilt_axis_z;
 		param_t thrust_coef;
 		param_t moment_ratio;
+		param_t physical_thrust_coef;
+		param_t physical_moment_coef;
 		param_t tilt_min_angle;
 		param_t tilt_max_angle;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 
 	Geometry _geometry{};
+	AllocationMethod _allocation_method{AllocationMethod::AUTO};
 
 	int _actuator_start_index{0};
 

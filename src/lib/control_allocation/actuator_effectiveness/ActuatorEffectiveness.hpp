@@ -51,6 +51,7 @@ enum class AllocationMethod {
 	PSEUDO_INVERSE = 0,
 	SEQUENTIAL_DESATURATION = 1,
 	AUTO = 2,
+	PHYSICS_ACCURATE_PSEUDO_INVERSE = 3
 };
 
 enum class ActuatorType {
@@ -162,6 +163,13 @@ public:
 			normalize[i] = false;
 		}
 	}
+
+	/**
+	 * Notify the effectiveness source about the configured allocation method.
+	 * This can be used to switch parameter interpretation without duplicating
+	 * ownership of CA_METHOD in helper classes.
+	 */
+	virtual void setAllocationMethod(AllocationMethod) {}
 
 	/**
 	 * Get the control effectiveness matrix if updated

@@ -75,6 +75,19 @@ ControlAllocator::ControlAllocator() :
 		_param_handles.slew_rate_servos[i] = param_find(buffer);
 	}
 
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		char buffer[18];
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_RPM", i);
+		_param_handles.rotor_rpm_max[i] = param_find(buffer);
+	}
+
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		char buffer[19];
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_MRPM", i);
+		_param_handles.rotor_rpm_min[i] = param_find(buffer);
+	}
+
+
 	parameters_updated();
 }
 
@@ -119,10 +132,21 @@ ControlAllocator::parameters_updated()
 		_has_slew_rate |= _params.slew_rate_servos[i] > FLT_EPSILON;
 	}
 
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		param_get(_param_handles.rotor_rpm_max[i], &_params.rotor_rpm_max[i]);
+		param_get(_param_handles.rotor_rpm_min[i], &_params.rotor_rpm_min[i]);
+	}
+
 	// Allocation method & effectiveness source
 	// Do this first: in case a new method is loaded, it will be configured below
 	bool updated = update_effectiveness_source();
 	update_allocation_method(updated); // must be called after update_effectiveness_source()
+
+	if (_actuator_effectiveness == nullptr) {
+		return;
+	}
+
+	_actuator_effectiveness->setAllocationMethod((AllocationMethod)_param_ca_method.get());
 
 	if (_num_control_allocation == 0) {
 		return;
@@ -130,6 +154,18 @@ ControlAllocator::parameters_updated()
 
 	for (int i = 0; i < _num_control_allocation; ++i) {
 		_control_allocation[i]->updateParameters();
+		ActuatorVector rpm_max{};
+		ActuatorVector rpm_min{};
+		rpm_max.setAll(0.f);
+		rpm_min.setAll(0.f);
+
+		for (int motor = 0; motor < MAX_NUM_MOTORS; ++motor) {
+			rpm_max(motor) = _params.rotor_rpm_max[motor];
+			rpm_min(motor) = _params.rotor_rpm_min[motor];
+		}
+
+		_control_allocation[i]->setRpmMax(rpm_max);
+		_control_allocation[i]->setRpmMin(rpm_min);
 	}
 
 	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
@@ -180,10 +216,13 @@ ControlAllocator::update_allocation_method(bool force)
 				_control_allocation[i] = new ControlAllocationPseudoInverse();
 				break;
 
+			case AllocationMethod::PHYSICS_ACCURATE_PSEUDO_INVERSE:
+				_control_allocation[i] = new ControlAllocationPhysicsAccuratePseudoInverse();
+				break;
+
 			case AllocationMethod::SEQUENTIAL_DESATURATION:
 				_control_allocation[i] = new ControlAllocationSequentialDesaturation();
 				break;
-
 			default:
 				PX4_ERR("Unknown allocation method");
 				break;
@@ -437,6 +476,7 @@ ControlAllocator::Run()
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
 			_control_allocation[i]->setControlSetpoint(c[i]);
+			_control_allocation[i]->setTimestampSample(_timestamp_sample);
 
 			// Do allocation
 			_control_allocation[i]->allocate();
@@ -583,11 +623,13 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 
 			ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
 
+			constexpr float min_effectiveness_threshold = 1e-12f;
+
 			for (int n = 0; n < NUM_AXES; n++) {
 				bool all_entries_small = true;
 
 				for (int m = 0; m < config.num_actuators_matrix[i]; m++) {
-					if (fabsf(matrix(n, m)) > 0.05f) {
+					if (fabsf(matrix(n, m)) > min_effectiveness_threshold) {
 						all_entries_small = false;
 					}
 				}
@@ -861,6 +903,10 @@ int ControlAllocator::print_status()
 
 	case AllocationMethod::PSEUDO_INVERSE:
 		PX4_INFO("Method: Pseudo-inverse");
+		break;
+
+	case AllocationMethod::PHYSICS_ACCURATE_PSEUDO_INVERSE:
+		PX4_INFO("Method: Physics accurate pseudo-inverse");
 		break;
 
 	case AllocationMethod::SEQUENTIAL_DESATURATION:

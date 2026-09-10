@@ -76,6 +76,11 @@ public:
 		normalize[1] = false;
 	}
 
+	void setAllocationMethod(AllocationMethod allocation_method) override
+	{
+		_mc_rotors.setAllocationMethod(allocation_method);
+	}
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;

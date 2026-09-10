@@ -43,6 +43,48 @@
 
 #include "ActuatorEffectivenessTilts.hpp"
 
+#include <drivers/drv_hrt.h>
+#include <cstring>
+
+using namespace matrix;
+
+static constexpr float MIN_VALID_THRUST_COEF = 1e-12f;
+
+static bool usePhysicalRotorCoefficients(AllocationMethod allocation_method)
+{
+	return allocation_method == AllocationMethod::PHYSICS_ACCURATE_PSEUDO_INVERSE;
+}
+
+void ActuatorEffectivenessRotors::publishDebugArray()
+{
+	debug_array_s debug_array{};
+	debug_array.timestamp = hrt_absolute_time();
+	debug_array.id = 43;
+	std::strncpy(debug_array.name, "rotorgeom", sizeof(debug_array.name));
+
+	// Layout per rotor for first 4 rotors:
+	// [px, py, pz, ax, ay, az, ct*1e9, km]
+	int idx = 0;
+	const int debug_rotors = _geometry.num_rotors < 4 ? _geometry.num_rotors : 4;
+
+	for (int i = 0; i < debug_rotors; ++i) {
+		debug_array.data[idx++] = _geometry.rotors[i].position(0);
+		debug_array.data[idx++] = _geometry.rotors[i].position(1);
+		debug_array.data[idx++] = _geometry.rotors[i].position(2);
+		debug_array.data[idx++] = _geometry.rotors[i].axis(0);
+		debug_array.data[idx++] = _geometry.rotors[i].axis(1);
+		debug_array.data[idx++] = _geometry.rotors[i].axis(2);
+		debug_array.data[idx++] = _geometry.rotors[i].thrust_coef * 1e9f;
+		debug_array.data[idx++] = _geometry.rotors[i].moment_ratio;
+	}
+
+	if (idx < debug_array_s::ARRAY_SIZE) {
+		debug_array.data[idx++] = (float)_geometry.num_rotors;
+	}
+
+	_debug_array_pub.publish(debug_array);
+}
+
 ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config,
 		bool tilt_support)
 	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support)
@@ -71,12 +113,28 @@ ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, A
 		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_KM", i);
 		_param_handles[i].moment_ratio = param_find(buffer);
 
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PCT", i);
+		_param_handles[i].physical_thrust_coef = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PKM", i);
+		_param_handles[i].physical_moment_coef = param_find(buffer);
+
 		if (_tilt_support) {
 			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_TILT", i);
 			_param_handles[i].tilt_index = param_find(buffer);
 		}
 	}
 
+	updateParams();
+}
+
+void ActuatorEffectivenessRotors::setAllocationMethod(AllocationMethod allocation_method)
+{
+	if (_allocation_method == allocation_method) {
+		return;
+	}
+
+	_allocation_method = allocation_method;
 	updateParams();
 }
 
@@ -110,8 +168,14 @@ void ActuatorEffectivenessRotors::updateParams()
 			break;
 		}
 
-		param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
-		param_get(_param_handles[i].moment_ratio, &_geometry.rotors[i].moment_ratio);
+		if (usePhysicalRotorCoefficients(_allocation_method)) {
+			param_get(_param_handles[i].physical_thrust_coef, &_geometry.rotors[i].thrust_coef);
+			param_get(_param_handles[i].physical_moment_coef, &_geometry.rotors[i].moment_ratio);
+
+		} else {
+			param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
+			param_get(_param_handles[i].moment_ratio, &_geometry.rotors[i].moment_ratio);
+		}
 
 		if (_tilt_support) {
 			int32_t tilt_param{0};
@@ -122,6 +186,8 @@ void ActuatorEffectivenessRotors::updateParams()
 			_geometry.rotors[i].tilt_index = -1;
 		}
 	}
+
+	publishDebugArray();
 }
 
 bool
@@ -134,16 +200,42 @@ ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
-			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+			    configuration.num_actuators_matrix[configuration.selected_matrix],
+			    _allocation_method);
+
+	debug_array_s debug_array{};
+	debug_array.timestamp = hrt_absolute_time();
+	debug_array.id = 44;
+	std::strncpy(debug_array.name, "rotormtx", sizeof(debug_array.name));
+
+	int idx = 0;
+	const int debug_rotors = _geometry.num_rotors < 4 ? _geometry.num_rotors : 4;
+	const auto &effectiveness = configuration.effectiveness_matrices[configuration.selected_matrix];
+
+	// Layout per rotor for first 4 rotors:
+	// [roll, pitch, yaw, thrust_x, thrust_y, thrust_z] * 1e9
+	for (int actuator = 0; actuator < debug_rotors; ++actuator) {
+		for (int axis = 0; axis < NUM_AXES; ++axis) {
+			debug_array.data[idx++] = effectiveness(axis, actuator) * 1e9f;
+		}
+	}
+
+	if (idx < debug_array_s::ARRAY_SIZE) {
+		debug_array.data[idx++] = (float)num_actuators;
+	}
+
+	_debug_array_pub.publish(debug_array);
+
 	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 	return true;
 }
 
 int
 ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
-		EffectivenessMatrix &effectiveness, int actuator_start_index)
+		EffectivenessMatrix &effectiveness, int actuator_start_index, AllocationMethod allocation_method)
 {
 	int num_actuators = 0;
+	const bool use_physical_coefficients = usePhysicalRotorCoefficients(allocation_method);
 
 	for (int i = 0; i < geometry.num_rotors; i++) {
 
@@ -186,15 +278,17 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 			}
 		}
 
-		if (fabsf(ct) < FLT_EPSILON) {
+		if (fabsf(ct) < MIN_VALID_THRUST_COEF) {
 			continue;
 		}
 
 		// Compute thrust generated by this rotor
 		matrix::Vector3f thrust = ct * axis;
 
-		// Compute moment generated by this rotor
-		matrix::Vector3f moment = ct * position.cross(axis) - ct * km * axis;
+		// Legacy mode keeps the PX4 ratio convention Torque = KM * Thrust.
+		// Physics mode uses a physical torque coefficient Torque = KM * speed^2.
+		matrix::Vector3f moment = ct * position.cross(axis)
+				  - (use_physical_coefficients ? km : ct * km) * axis;
 
 		// Fill corresponding items in effectiveness matrix
 		for (size_t j = 0; j < 3; j++) {
