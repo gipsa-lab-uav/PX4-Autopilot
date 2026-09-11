@@ -260,7 +260,34 @@ ControlAllocationPhysicsAccuratePseudoInverse::normaliseActuatorSp()
 			const float omega_sq = fmaxf(_actuator_sp(i), 0.f);
 			const float omega = sqrtf(omega_sq);
 			const float actuator_sp_normalized = omegaToActuatorCommand(i, omega);
-			_actuator_sp(i) = fminf(fmaxf(actuator_sp_normalized, _actuator_min(i)), _actuator_max(i));
+
+			// Keep the command unconstrained here. ControlAllocator applies the
+			// standard PX4 slew limiting and clipping after allocate(). A negative
+			// command can legitimately represent an infeasible speed below RPM_MIN.
+			_actuator_sp(i) = actuator_sp_normalized;
+		}
+	}
+}
+
+void
+ControlAllocationPhysicsAccuratePseudoInverse::getPhysicalControlLimits(int axis, float &axis_min,
+		float &axis_max) const
+{
+	axis_max = 0.f;
+	axis_min = 0.f;
+
+	for (int actuator = 0; actuator < _num_actuators; ++actuator) {
+		const float coeff = _effectiveness(axis, actuator);
+		const float actuator_min_physical = actuatorCommandToOmegaSq(actuator, _actuator_min(actuator));
+		const float actuator_max_physical = actuatorCommandToOmegaSq(actuator, _actuator_max(actuator));
+
+		if (coeff >= 0.f) {
+			axis_max += coeff * actuator_max_physical;
+			axis_min += coeff * actuator_min_physical;
+
+		} else {
+			axis_max += coeff * actuator_min_physical;
+			axis_min += coeff * actuator_max_physical;
 		}
 	}
 }
@@ -272,23 +299,9 @@ ControlAllocationPhysicsAccuratePseudoInverse::normalisedControlToPhysical(
 	matrix::Vector<float, NUM_AXES> physical_control{};
 
 	for (int axis = 0; axis < NUM_AXES; ++axis) {
-		float axis_max = 0.f;
-		float axis_min = 0.f;
-
-		for (int actuator = 0; actuator < _num_actuators; ++actuator) {
-			const float coeff = _effectiveness(axis, actuator);
-			const float actuator_min_physical = actuatorCommandToOmegaSq(actuator, _actuator_min(actuator));
-			const float actuator_max_physical = actuatorCommandToOmegaSq(actuator, _actuator_max(actuator));
-
-			if (coeff >= 0.f) {
-				axis_max += coeff * actuator_max_physical;
-				axis_min += coeff * actuator_min_physical;
-
-			} else {
-				axis_max += coeff * actuator_min_physical;
-				axis_min += coeff * actuator_max_physical;
-			}
-		}
+		float axis_min;
+		float axis_max;
+		getPhysicalControlLimits(axis, axis_min, axis_max);
 
 		if (control(axis) >= 0.f) {
 			physical_control(axis) = (axis_max > FLT_EPSILON) ? control(axis) * axis_max : 0.f;
@@ -301,6 +314,28 @@ ControlAllocationPhysicsAccuratePseudoInverse::normalisedControlToPhysical(
 	return physical_control;
 }
 
+matrix::Vector<float, ControlAllocation::NUM_AXES>
+ControlAllocationPhysicsAccuratePseudoInverse::physicalControlToNormalised(
+	const matrix::Vector<float, NUM_AXES> &physical_control) const
+{
+	matrix::Vector<float, NUM_AXES> normalised_control{};
+
+	for (int axis = 0; axis < NUM_AXES; ++axis) {
+		float axis_min;
+		float axis_max;
+		getPhysicalControlLimits(axis, axis_min, axis_max);
+
+		if (physical_control(axis) >= 0.f) {
+			normalised_control(axis) = (axis_max > FLT_EPSILON) ? physical_control(axis) / axis_max : 0.f;
+
+		} else {
+			normalised_control(axis) = (axis_min < -FLT_EPSILON) ? physical_control(axis) / -axis_min : 0.f;
+		}
+	}
+
+	return normalised_control;
+}
+
 ControlAllocation::ActuatorVector
 ControlAllocationPhysicsAccuratePseudoInverse::actuatorSetpointToPhysical(const ActuatorVector &actuator) const
 {
@@ -311,6 +346,18 @@ ControlAllocationPhysicsAccuratePseudoInverse::actuatorSetpointToPhysical(const 
 	}
 
 	return actuator_physical;
+}
+
+matrix::Vector<float, ControlAllocation::NUM_AXES>
+ControlAllocationPhysicsAccuratePseudoInverse::getAllocatedControl() const
+{
+	// The effectiveness matrix is physical (wrench per krpm^2), while
+	// _actuator_sp is the normalized rotor-speed command sent downstream.
+	// Reconstruct the achieved physical wrench first, then express it in the
+	// normalized controller coordinates expected by control_allocator_status.
+	const matrix::Vector<float, NUM_AXES> allocated_control_physical =
+		_effectiveness * actuatorSetpointToPhysical(_actuator_sp);
+	return physicalControlToNormalised(allocated_control_physical);
 }
 
 void
@@ -407,14 +454,14 @@ ControlAllocationPhysicsAccuratePseudoInverse::allocate()
 
 	_prev_actuator_sp = _actuator_sp;
 
-	const matrix::Vector<float, NUM_AXES> control_sp_physical = normalisedControlToPhysical(_control_sp);
+	_control_sp_physical = normalisedControlToPhysical(_control_sp);
 	const matrix::Vector<float, NUM_AXES> control_trim_physical = _effectiveness * actuatorSetpointToPhysical(_actuator_trim);
 	const ActuatorVector actuator_trim_physical = actuatorSetpointToPhysical(_actuator_trim);
-	publishPhysicalControlSetpoints(control_sp_physical);
+	publishPhysicalControlSetpoints(_control_sp_physical);
 
 	// Allocate in physical actuator units (krpm^2), then convert back to a
-	// normalized speed command in [0, 1].
-	_actuator_sp = actuator_trim_physical + _mix * (control_sp_physical - control_trim_physical);
+	// normalized speed command. ControlAllocator applies the standard limits.
+	_actuator_sp = actuator_trim_physical + _mix * (_control_sp_physical - control_trim_physical);
 
 	// Convert krpm^2 to a normalized command using the ESC speed interval
 	// [rpm_min, rpm_max].

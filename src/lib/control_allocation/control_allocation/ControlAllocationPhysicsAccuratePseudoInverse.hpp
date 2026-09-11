@@ -70,6 +70,10 @@ public:
 	void setMetricAllocation(bool metric_allocation) { _metric_allocation = metric_allocation; }
 	void setRpmMax(const ActuatorVector &rpm_max) override;
 	void setRpmMin(const ActuatorVector &rpm_min) override;
+	matrix::Vector<float, NUM_AXES> getAllocatedControl() const override;
+
+	/** Desired physical wrench published on the Newton setpoint topics. */
+	const matrix::Vector<float, NUM_AXES> &getPhysicalControlSetpoint() const { return _control_sp_physical; }
 
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
@@ -91,7 +95,9 @@ private:
 	float actuatorCommandToOmegaSq(int actuator, float actuator_command) const;
 	float omegaToActuatorCommand(int actuator, float omega) const;
 	void normaliseActuatorSp();
+	void getPhysicalControlLimits(int axis, float &axis_min, float &axis_max) const;
 	matrix::Vector<float, NUM_AXES> normalisedControlToPhysical(const matrix::Vector<float, NUM_AXES> &control) const;
+	matrix::Vector<float, NUM_AXES> physicalControlToNormalised(const matrix::Vector<float, NUM_AXES> &control) const;
 	ActuatorVector actuatorSetpointToPhysical(const ActuatorVector &actuator) const;
 	void publishPhysicalControlSetpoints(const matrix::Vector<float, NUM_AXES> &control_sp_physical);
 	void publishDebugArray();
@@ -100,6 +106,7 @@ private:
 	bool _normalization_needs_update{false};
 	ActuatorVector _rpm_max;
 	ActuatorVector _rpm_min;
+	matrix::Vector<float, NUM_AXES> _control_sp_physical;
 	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
 	uORB::Publication<vehicle_thrust_newton_setpoint_s> _vehicle_thrust_newton_setpoint_pub{ORB_ID(vehicle_thrust_newton_setpoint)};
 	uORB::Publication<vehicle_torque_newton_setpoint_s> _vehicle_torque_newton_setpoint_pub{ORB_ID(vehicle_torque_newton_setpoint)};
