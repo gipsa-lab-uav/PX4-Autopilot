@@ -751,11 +751,30 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	// propagate armed state to firmware version checker
+	if (_actuator_armed_sub.updated() && _servers != nullptr) {
+		actuator_armed_s actuator_armed{};
+		_actuator_armed_sub.copy(&actuator_armed);
+		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
+	}
+
 	_node.spinOnce(); // expected to be non-blocking
 
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
+
+	if (_servers != nullptr) {
+		const bool pending = _servers->hasPendingFirmwareUpdates();
+
+		if (pending != _fw_update_pending_last) {
+			_fw_update_pending_last = pending;
+			uavcan_firmware_update_s fw_update{};
+			fw_update.timestamp = hrt_absolute_time();
+			fw_update.pending_updates = pending;
+			_fw_update_pub.publish(fw_update);
+		}
+	}
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -1188,6 +1207,11 @@ UavcanNode::print_info()
 			printf("\tIO errors: %" PRIu64 "\n", iface_perf_cnt.errors);
 			printf("\tRX frames: %" PRIu64 "\n", iface_perf_cnt.frames_rx);
 			printf("\tTX frames: %" PRIu64 "\n", iface_perf_cnt.frames_tx);
+
+			auto txq = _node.getDispatcher().getCanIOManager().getTxQueuePerfCounters(i);
+			printf("\tTX queue peak: %" PRIu16 "/%" PRIu16 " blocks\n", txq.peak_used_blocks, txq.block_limit);
+			printf("\tTX rejected:   %" PRIu32 " frames (%" PRIu32 " expired, %" PRIu32 " no memory)\n",
+			       txq.rejected_frames, txq.expired_frames, txq.out_of_memory_frames);
 		}
 	}
 
