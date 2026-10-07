@@ -1,0 +1,9 @@
+#!/bin/sh
+# Single ICM42688P. PX4 already flips sensor Y/Z, matching ArduPilot roll 180.
+board_adc start
+icm42688p -s -b 1 -R 0 start
+# DPS310 on I2C2. Both strap addresses are supported.
+if ! dps310 -I -b 2 -a 0x76 start
+then
+    dps310 -I -b 2 -a 0x77 start
+fi

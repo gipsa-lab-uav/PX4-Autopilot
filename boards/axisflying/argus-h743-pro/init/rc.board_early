@@ -1,0 +1,7 @@
+#!/bin/sh
+# Storage is mounted by board_app_initialize, rather than the generic SD logic.
+set STORAGE_CHECK no
+if [ -d /fs/flash/etc ]
+then
+    set STORAGE_AVAILABLE yes
+fi

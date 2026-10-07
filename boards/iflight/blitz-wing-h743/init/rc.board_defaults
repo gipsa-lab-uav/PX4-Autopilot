@@ -1,0 +1,16 @@
+#!/bin/sh
+# iFlight BLITZ Wing H743 defaults; choose and calibrate an airframe in QGC.
+param set-default SYS_HAS_MAG 0
+param set-default EKF2_IMU_CTRL 7
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default SYS_USB_AUTO 2
+# ArduPilot Wing reference values; verify against a meter before flight.
+param set-default BAT1_V_DIV 11
+param set-default BAT1_A_PER_V 50
+# Without a card, retain mission storage in RAM. With a card, use the file backend.
+if [ $STORAGE_AVAILABLE = no ]
+then
+    param set-default SYS_DM_BACKEND 1
+else
+    param set-default SYS_DM_BACKEND 0
+fi

@@ -1,0 +1,14 @@
+#!/bin/sh
+# AxisFlying Argus H743 Pro 4-8S: dual ICM42688P and DPS368.
+board_adc start
+
+# Betaflight CW0/CW90 become PX4 yaw 0/yaw 90 after the driver's
+# conversion from the sensor's forward/left/up frame to forward/right/down.
+icm42688p -s -b 1 -R 0 -C 32000 start
+icm42688p -s -b 4 -R 2 -C 32000 start
+
+# DPS368 on internal I2C2; probe both supported strap addresses.
+if ! dps310 -I -b 2 -a 0x76 -8 start
+then
+    dps310 -I -b 2 -a 0x77 -8 start
+fi

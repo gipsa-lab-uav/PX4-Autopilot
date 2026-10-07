@@ -1,0 +1,25 @@
+#!/bin/sh
+# AxisFlying Argus H743 Pro defaults.
+
+# No onboard magnetometer. External I2C1 compasses can be enabled by the user.
+param set-default SYS_HAS_MAG 0
+param set-default EKF2_IMU_CTRL 7
+param set-default IMU_GYRO_RATEMAX 2000
+
+# There is no verified USB/battery supply-valid detector.
+param set-default CBRK_SUPPLY_CHK 894281
+
+# A binary buzzer cannot play pitched startup tunes.
+param set-default CBRK_BUZZER 782090
+
+# ADC scaling depends on the board revision and attached ESC/current sensor.
+# Configure BAT1_V_DIV and BAT1_A_PER_V against measured values before flight.
+param set-default BAT1_V_DIV 0
+param set-default BAT1_A_PER_V 0
+
+# Limit logs to fit the 16 MiB NOR; retain room for the next log file.
+param set-default SDLOG_MAX_SIZE 2
+param set-default SDLOG_ROTATE 90
+
+# Mission storage in RAM avoids relying on unformatted NOR at first boot.
+param set-default SYS_DM_BACKEND 1

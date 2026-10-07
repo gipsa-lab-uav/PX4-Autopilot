@@ -1,0 +1,13 @@
+{
+    "board_id": 60002,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the iFlight BLITZ Wing H743 (ICM42688P, DPS310)",
+    "image": "",
+    "build_time": 0,
+    "summary": "IFLIGHT_BLITZ_WING_H743",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}
